@@ -89,17 +89,24 @@ public:
     inline T& add(Args&& ... args);
 
     /**
-     * Removes a Component from this Entity
+     * Check if a Component is assined to this Entity
+     * @returns true if component is assigned, false otherwise
      */
     template <class T>
-    inline void remove();
+    inline bool has();
 
     /**
-     * Retreive a Component
+     * Retrieve a Component
      * @returns reference to the Component
      */
     template <class T>
     inline T& get();
+
+    /**
+     * Removes a Component from this Entity
+     */
+    template <class T>
+    inline void remove();
 
     /**
      * Recreates an Entity in the specified World
@@ -121,9 +128,18 @@ public:
     inline void reset(World& world, const Entity& other);
 
     /**
+     * Checks whether an Entity is valid
+     * @returns true if valid, false otherwise
+     */
+    inline bool valid()
+    {
+        return (m_world == nullptr ? false : true);
+    }
+
+    /**
      * Remove an Entity from the World.
      */
-    void destroy();
+    inline void destroy();
 
 private:
     friend class World;
@@ -186,7 +202,7 @@ typedef std::map<std::string, std::vector<std::shared_ptr<Component>>> Component
 class World
 {
 private:
-    /// The local m_registry of Components types and the Entites that use them.
+    /// The local registry of Components types and the Entites that use them.
     ComponentRegistry m_registry;
 
     /// Number of Entities existing in the World.
@@ -199,10 +215,10 @@ private:
 
 public:
     /**
-     * Registers a Component on the ComponentRegistry of the World.
+     * Registers a Component to the World.
      */
     template <class T>
-    void registerComponent()
+    void add()
     {
         if (!validComponent<T>())
             throw std::runtime_error("Not a valid Component - class must derive from Component");
@@ -214,6 +230,18 @@ public:
         #ifdef DIVVY_DEBUG
         std::cout << "-- Registered Component Type: " << name << std::endl;
         #endif
+    }
+
+    /**
+     * Checks whether a Component is registered in the World.
+     * @returns true if the Component is registered, false otherwise
+     */
+    template <class T>
+    inline bool has()
+    {
+        if (m_registry.find(typeid(T).name()) == m_registry.end())
+            return false;
+        return true;
     }
 
     /**
@@ -241,18 +269,6 @@ private:
     inline bool hasEntity(const Entity& entity)
     {
         if (m_open.find(entity.m_id) != m_open.end() || m_slots <= entity.m_id)
-            return false;
-        return true;
-    }
-
-    /**
-     * Checks whether a Component is registered in the World.
-     * @returns true if the Component is registered, false otherwise
-     */
-    template <class T>
-    inline bool hasComponent()
-    {
-        if (m_registry.find(typeid(T).name()) == m_registry.end())
             return false;
         return true;
     }
@@ -350,7 +366,7 @@ private:
         if (!hasEntity(entity))
             throw std::runtime_error("Entity non-existent - call hasEntity() beforehand");
 
-        if (!hasComponent<T>())
+        if (!has<T>())
             throw std::runtime_error("Component not registered - call registerComponent() beforehand");
 
         // Add to ComponentRegistry
@@ -453,7 +469,7 @@ Entity::Entity(World& world)
 Entity::Entity(const Entity& other)
 : m_world(other.m_world)
 {
-    if (m_world == nullptr)
+    if (!valid())
         throw std::runtime_error("Null entity, cannot copy");
 
     m_id = m_world->addEntity(*other.m_world, other);
@@ -467,7 +483,7 @@ Entity::Entity(World& world, const Entity& other)
 
 Entity::~Entity()
 {
-    if (m_world != nullptr)
+    if (valid())
         destroy();
 }
 
@@ -481,33 +497,42 @@ Entity& Entity::operator=(const Entity& rhs)
 template <class T, class ... Args>
 inline T& Entity::add(Args&& ... args)
 {
-    if (m_world == nullptr)
+    if (!valid())
         throw std::runtime_error("Null entity, cannot add Component");
 
     return m_world->addComponent<T>(*this, std::forward<Args>(args)...);
 }
 
 template <class T>
-inline void Entity::remove()
+inline bool Entity::has()
 {
-    if (m_world == nullptr)
-        throw std::runtime_error("Null entity, cannot remove Component");
+    if (!valid())
+        throw std::runtime_error("Null entity, cannot check for Component");
 
-    m_world->removeComponent<T>(*this);
+    return m_world->hasComponent<T>(*this);
 }
 
 template <class T>
 inline T& Entity::get()
 {
-    if (m_world == nullptr)
+    if (!valid())
         throw std::runtime_error("Null entity, cannot get Component");
 
     return m_world->getComponent<T>(*this);
 }
 
+template <class T>
+inline void Entity::remove()
+{
+    if (!valid())
+        throw std::runtime_error("Null entity, cannot remove Component");
+
+    m_world->removeComponent<T>(*this);
+}
+
 inline void Entity::reset(World& world)
 {
-    if (m_world != nullptr)
+    if (valid())
         destroy();
 
     m_world = &world;
@@ -516,10 +541,10 @@ inline void Entity::reset(World& world)
 
 inline void Entity::reset(const Entity& other)
 {
-    if (m_world != nullptr)
+    if (!valid())
         destroy();
 
-    if (other.m_world == nullptr)
+    if (!valid())
         throw std::runtime_error("Null entity, cannot copy");
 
     m_world = other.m_world;
@@ -528,15 +553,15 @@ inline void Entity::reset(const Entity& other)
 
 inline void Entity::reset(World& world, const Entity& other)
 {
-    if (m_world != nullptr)
+    if (!valid())
         destroy();
     m_world = &world;
     m_id = m_world->addEntity(*m_world, other);
 }
 
-void Entity::destroy()
+inline void Entity::destroy()
 {
-    if (m_world == nullptr)
+    if (!valid())
         throw std::runtime_error("Null entity, cannot destroy");
 
     m_world->removeEntity(*this);
