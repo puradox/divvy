@@ -453,7 +453,7 @@ Entity::Entity(World& world)
 Entity::Entity(const Entity& other)
 : m_world(other.m_world)
 {
-    if (m_world != nullptr)
+    if (m_world == nullptr)
         throw std::runtime_error("Null entity, cannot copy");
 
     m_id = m_world->addEntity(*other.m_world, other);
