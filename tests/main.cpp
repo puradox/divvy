@@ -9,7 +9,7 @@ class Transform : public Component
 public:
     virtual void update()
     {
-        //std::cout << "Transform: (" << x << "," << y << ")" << std::endl;
+        std::cout << "Transform: (" << x << "," << y << ")" << std::endl;
     }
 
     virtual std::shared_ptr<Component> clone() const
@@ -38,7 +38,7 @@ class Nametag : public Component
 public:
     virtual void update()
     {
-        //std::cout << "Name: " << name << std::endl;
+        std::cout << "Name: " << name << std::endl;
     }
 
     virtual std::shared_ptr<Component> clone() const
@@ -70,20 +70,20 @@ int main()
     w.registerComponent<Transform>();
     w.registerComponent<Nametag>();
 
-    {
-        // Create 500,000 Entities
-        Entity e[500000];
-        for (int i = 0; i < 500000; i++)
-        {
-            e[i].reset(w);
-            e[i].add<Transform>().setX(6).setY(9);
-            e[i].add<Nametag>().setName("Sam");
-        }
-        std::cout << "Created" << std::endl;
-        w.update();
-        std::cout << "Updated" << std::endl;
-    }
+    // Make a Player
+    Entity player(w);
+    player.add<Transform>().setX(8).setY(8);
+    player.add<Nametag>().setName("Sam");
 
-    // Entities are now out of scope
-    std::cout << "Done" << std::endl;
+        std::cout << "\n\n";
+        w.update();
+        std::cout << "\n\n";
+
+    // Make an Enemy
+    Entity enemy(player);
+    enemy.get<Nametag>().setName("Bowser");
+
+        std::cout << "\n\n";
+        w.update();
+        std::cout << "\n\n";
 }
