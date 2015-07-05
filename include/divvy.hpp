@@ -482,7 +482,7 @@ public:
         for (Entity& entity : m_entities)
         {
             entity.m_id = 0;
-s            entity.m_world = nullptr;
+            entity.m_world = nullptr;
         }
 
         // Unregister all Components
