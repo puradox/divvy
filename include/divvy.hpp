@@ -27,21 +27,61 @@
 #ifndef DIVVY_HPP
 #define DIVVY_HPP
 
+#include <bitset>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <queue>
 #include <set>
 #include <string>
+#include <typeindex>
+#include <type_traits>
 #include <vector>
 
 namespace divvy {
 
-// =====================================[ Entity ]=======================================
+// ===================================[ Component ]======================================
 
 class World; // Forward declaration
 
 /// An Entity represents a simple (unsigned) number
-typedef std::uint_fast32_t EntityID;
+typedef size_t EntityID;
+
+/**
+ * Component is a base class that provides functionality for the entities
+ * through the update function. Components can also be used to store
+ * information about entites.
+ */
+class Component
+{
+public:
+    /// Allow derived classes to have a destructor.
+    virtual ~Component() {}
+
+    /// Clone an existing Component to make this Component identical.
+    virtual void clone(const Component& other) = 0;
+
+    /// Provide functionality to an Entity.
+    virtual void update() = 0;
+
+protected:
+    friend class World;
+
+    /// The World that is using the Component.
+    World* m_world;
+
+    /// The EntityID that is assigned to the Component.
+    EntityID m_entity;
+};
+
+/// Defines a valid Component type
+template <class T>
+using is_valid_component = std::enable_if_t<std::is_base_of<Component, T>::value &&
+                                            !std::is_abstract<T>::value &&
+                                            std::is_default_constructible<T>::value>;
+
+// =====================================[ Entity ]=======================================
 
 class Entity
 {
@@ -58,17 +98,18 @@ public:
     Entity(World& world);
 
     /**
-     * Creates a clone of an Entity in the specified World
+     * Creates a clone of an Entity in the same World
      * @param other     The Entity to clone
      */
     Entity(const Entity& other);
 
     /**
      * Creates a clone of an Entity in the specified World
-     * @param world     The world used to create an Entity
      * @param other     The Entity to clone
+     * @param world     The World to clone the Entity in.
+     *                  If nullptr, clone in the same world as other
      */
-    Entity(World& world, const Entity& other);
+    Entity(const Entity& other, World& world);
 
     /**
      * Destructor
@@ -85,28 +126,33 @@ public:
      * Assign a Component to this Entity
      * @returns reference to the Component assigned
      */
-    template <class T, class ... Args>
+    template <class T, class ... Args, typename = is_valid_component<T>>
     inline T& add(Args&& ... args);
 
     /**
      * Check if a Component is assined to this Entity
      * @returns true if component is assigned, false otherwise
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     inline bool has();
 
     /**
      * Retrieve a Component
      * @returns reference to the Component
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     inline T& get();
 
     /**
      * Removes a Component from this Entity
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     inline void remove();
+
+    /**
+     * Recreates an uninitialized Entity
+     */
+    inline void reset();
 
     /**
      * Recreates an Entity in the specified World
@@ -115,17 +161,18 @@ public:
     inline void reset(World& world);
 
     /**
-     * Recreates a clone of an Entity in the specified World
+     * Recreates a clone of an Entity in the same World
      * @param other     The Entity to clone
      */
     inline void reset(const Entity& other);
 
     /**
      * Recreates a clone of an Entity in the specified World
-     * @param world     The world used to create an Entity
      * @param other     The Entity to clone
+     * @param world     The World to clone the Entity in.
+     *                  If nullptr, clone in the same world as other
      */
-    inline void reset(World& world, const Entity& other);
+    inline void reset(const Entity& other, World& world);
 
     /**
      * Checks whether an Entity is valid
@@ -145,52 +192,187 @@ private:
     friend class World;
     friend std::ostream& operator<<(std::ostream& stream, const Entity& entity);
 
-    /// Identification number to reference the Entity.
-    EntityID m_id = 0;
-
     /// The World in which this Entity exists in.
     World* m_world = nullptr;
+
+    /// Identification number to reference the Entity.
+    EntityID m_id = 0;
 };
 
+/**
+ * Displays the EntityID of an Entity to a standard output stream.
+ * @param   stream      The stream to ouput to.
+ * @param   entity      The Entity to display information of
+ * @returns The stream for further usage.
+ */
 std::ostream& operator<<(std::ostream& stream, const Entity& entity)
 {
-    stream << entity.m_id;
+    stream << "Entity #" << entity.m_id;
     return stream;
 }
 
-// ===================================[ Component ]======================================
+// =================================[ ComponentPool ]====================================
 
 /**
- * Component is a base class that provides functionality for the entities
- * through the update function. Components can also be used to store
- * information about entites.
+ * Base polymorphic Component container.
  */
-class Component
+class ComponentPool
 {
 public:
-    /// Allow derived classes to have a destructor.
-    virtual ~Component() {}
+    /**
+     * Destructor.
+     */
+    virtual ~ComponentPool() {}
 
-    /// Provide functionality to an Entity.
+    /**
+     * Add a Component to an Entity
+     */
+    virtual Component& add(int index) = 0;
+
+    /**
+     * Access a Component at the specified index.
+     */
+    virtual Component& at(size_t index) = 0;
+
+    /**
+     * Access a constant Component at the specified index.
+     */
+    virtual const Component& at(size_t index) const = 0;
+
+    /**
+     * Check if an Entity has a Component
+     * @returns true if the Entity has the Component, false otherwise
+     */
+    virtual bool has(size_t index) = 0;
+
+    /**
+     * Remove a Component from an Entity
+     */
+    virtual void remove(size_t index) = 0;
+
+    /**
+     * Resize the pool to allow for more Components
+     */
+    virtual void resize(size_t size) = 0;
+
+    /**
+     * Updates all the Components in the pool.
+     */
     virtual void update() = 0;
+};
 
-    /// Make a copy of the Component.
-    virtual std::shared_ptr<Component> clone() const = 0;
+// ================================[ ComponentSegment ]==================================
 
-protected:
-    friend class World;
+/**
+ * Derived polymorphic Component container. This is where all of the user-created
+ * Components will be held and referenced.
+ */
+template <class T>
+class ComponentSegment : public ComponentPool
+{
+private:
+    /// Collection of the specified derived Component
+    std::vector<T> m_segment;
 
-    /// The World that is using the Component.
-    World* m_world;
+    /// Record of the active Components
+    std::vector<bool> m_active;
 
-    /// The EntityID that is assigned to the Component.
-    EntityID m_entity;
+public:
+    /**
+     * Destructor.
+     */
+    virtual ~ComponentSegment() {}
+
+    /**
+     * Adds a derived Component to an Entity
+     */
+    virtual Component& add(int index)
+    {
+        if (index >= m_segment.size())
+            throw std::runtime_error("ComponentSegment index out of bounds");
+
+        m_active.at(index) = true;
+
+        return at(index);
+    }
+
+    /**
+     * Access a Component at the specified index.
+     */
+    virtual Component& at(size_t index)
+    {
+        return static_cast<Component&>(m_segment.at(index));
+    }
+
+    /**
+     * Access a constant Component at the specified index.
+     */
+    virtual const Component& at(size_t index) const
+    {
+        return static_cast<const Component&>(m_segment.at(index));
+    }
+
+    /**
+     * Check if an Entity has the specified Component
+     * @returns true if the Entity has the Component, false otherwise
+     */
+    virtual bool has(size_t index)
+    {
+        try
+        {
+            return m_active.at(index);
+        }
+        catch (std::out_of_range e)
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Removes a derived Component from an Entity
+     */
+    virtual void remove(size_t index)
+    {
+        try
+        {
+            m_active.at(index) = false;
+        }
+        catch (std::out_of_range e)
+        {
+            throw std::runtime_error("Cannot remove, Entity out of bounds");
+        }
+    }
+
+    /**
+     * Resize the pool to allow for more Components
+     */
+    virtual void resize(size_t size)
+    {
+        try
+        {
+            m_segment.resize(size);
+            m_active.resize(size, false);
+        }
+        catch (std::bad_alloc e)
+        {
+            throw std::runtime_error("Failed to resize ComponentPool");
+        }
+    }
+
+    /**
+     * Updates all the active Components
+     */
+    virtual void update()
+    {
+        for (int i = 0; i < m_segment.size(); i++)
+        {
+            if (m_active.at(i))
+                m_segment.at(i).update();
+        }
+    }
 };
 
 // =====================================[ World ]========================================
-
-/// Defines what a ComponentRegisry is, type-wise
-typedef std::map<std::string, std::vector<std::shared_ptr<Component>>> ComponentRegistry;
 
 /**
  * World is the heart of all Component operations, as it calls each Component's
@@ -202,33 +384,67 @@ typedef std::map<std::string, std::vector<std::shared_ptr<Component>>> Component
 class World
 {
 private:
+    typedef std::unique_ptr<ComponentPool> Pool;
+    typedef std::map<std::type_index, Pool> ComponentRegistry;
+
     /// The local registry of Components types and the Entites that use them.
     ComponentRegistry m_registry;
 
-    /// Number of Entities existing in the World.
-    size_t m_slots = 0;
+    /// Collection of Entities created in this World
+    std::vector<std::reference_wrapper<Entity>> m_entities;
+
+    /// Current capacity of possible Entities that could exist in the World.
+    size_t m_capacity = 0;
+
+    /// Count of Entities currently existing in the World.
+    size_t m_count = 0;
 
     /// An ordered queue in which Entities were deleted in.
     /// Serves the purpose of filling in gaps in memory where Entities were
     /// previously deleted.
     std::set<int> m_open;
 
+private:
+    /**
+     * Checks whether an Entity is nonexistent or null.
+     * @returns true if existing, false otherwise
+     */
+    inline bool hasEntity(const Entity& entity)
+    {
+        if (m_open.find(entity.m_id) != m_open.end() || m_capacity <= entity.m_id)
+            return false;
+        return true;
+    }
+
+    /**
+     * Checks whether an Entity contains a specific Component.
+     * @returns true if Entity contains the specific Component, false otherwise
+     */
+    template <class T, typename = is_valid_component<T>>
+    inline bool hasComponent(const Entity& entity)
+    {
+        if (m_registry.find(typeid(T)) == m_registry.end() ||
+           !m_registry.at(typeid(T))->has(entity.m_id))
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
 public:
     /**
-     * Registers a Component to the World.
+     * Register a Component to this World.
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     void add()
     {
-        if (!validComponent<T>())
-            throw std::runtime_error("Not a valid Component - class must derive from Component");
-
-        // Register on the ComponentRegistry
-        std::string name = typeid(T).name();
-        m_registry.insert(std::make_pair(name, std::vector<std::shared_ptr<Component>>()));
+        m_registry.insert(std::make_pair(std::type_index(typeid(T)), std::make_unique<ComponentSegment<T>>()));
 
         #ifdef DIVVY_DEBUG
-        std::cout << "-- Registered Component Type: " << name << std::endl;
+        std::cout << "-- Registered Component Type: " << typeid(T).name() << std::endl;
         #endif
     }
 
@@ -236,12 +452,42 @@ public:
      * Checks whether a Component is registered in the World.
      * @returns true if the Component is registered, false otherwise
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     inline bool has()
     {
-        if (m_registry.find(typeid(T).name()) == m_registry.end())
+        if (m_registry.find(typeid(T)) == m_registry.end())
             return false;
         return true;
+    }
+
+    /**
+     * Unregister a Component in this World.
+     */
+    template <class T, typename = is_valid_component<T>>
+    void remove()
+    {
+        m_registry.erase(typeid(T));
+
+        #ifdef DIVVY_DEBUG
+        std::cout << "-- Registered Component Type: " << typeid(T).name() << std::endl;
+        #endif
+    }
+
+    /**
+     * Clears the World of all Entities and Components
+     */
+    void clear()
+    {
+        // Uninitialize every Entity in this World
+        for (Entity& entity : m_entities)
+        {
+            entity.m_id = 0;
+s            entity.m_world = nullptr;
+        }
+
+        // Unregister all Components
+        for (auto it = m_registry.begin(); it != m_registry.end(); it++)
+            m_registry.erase(it);
     }
 
     /**
@@ -251,102 +497,104 @@ public:
     {
         // Update all Components
         for (auto it = m_registry.begin(); it != m_registry.end(); it++)
-            for (int i = 0; i < m_slots; i++)
-                if (it->second.at(i) != nullptr && m_open.find(i) == m_open.end())
-                    it->second.at(i)->update();
+            for (int i = 0; i < m_capacity; i++)
+                if (it->second->has(i) == true && m_open.find(i) == m_open.end())
+                    it->second->at(i).update();
     }
 
-    int slots() { return m_slots; }
+    /**
+     * Destructor.
+     * Invalidates all Entities that is assigned to this World
+     */
+    ~World()
+    {
+        // Uninitialize every Entity in this World
+        for (Entity& entity : m_entities)
+        {
+            entity.m_id = 0;
+            entity.m_world = nullptr;
+        }
+    }
 
 private:
     friend class Entity;
     friend class Component;
 
     /**
-     * Checks whether an Entity is nonexistent or null.
-     * @returns true if existing, false otherwise
-     */
-    inline bool hasEntity(const Entity& entity)
-    {
-        if (m_open.find(entity.m_id) != m_open.end() || m_slots <= entity.m_id)
-            return false;
-        return true;
-    }
-
-    /**
-     * Checks whether an Entity contains a specific Component.
-     * @returns true if Entity contains the specific Component, false otherwise
-     */
-    template <class T>
-    inline bool hasComponent(const Entity& entity)
-    {
-        std::string name = typeid(T).name();
-        if (m_registry.find(name) == m_registry.end() || m_registry.at(name).at(entity.m_id) == nullptr)
-            return false;
-        return true;
-    }
-
-    /**
-     * Checks whether a Component derives from the Component base class.
-     * @returns true if valid, false otherwise
-     */
-    template <class T>
-    inline bool validComponent()
-    {
-        if (!std::is_base_of<Component, T>::value && !std::is_abstract<T>::value)
-            return false;
-        return true;
-    }
-
-    /**
      * Create an Entity in the World.
      * @returns newly created Entity
      */
-    EntityID addEntity()
+    EntityID addEntity(Entity& entity)
     {
-        if (m_open.size() != 0) // Free m_slots available
+        int index;
+
+        if (m_open.size() != 0) // Free m_capacity available - reuse slots
         {
-            // Remove the open slot
-            int index = *(m_open.begin());
-            m_open.erase(m_open.begin());
+            index = *(m_open.begin());      // Set index to open slot
+            m_open.erase(m_open.begin());   // Remove open slots
+            m_entities.at(index) = entity;  // Add to Entity collection
 
             #ifdef DIVVY_DEBUG
             std::cout << "-- Added new Entity at #" << index << " (reused)" << std::endl;
             #endif
-
-            return index;
         }
-        else
+        else // No open slots available - allocate more slots
         {
+            m_capacity++; // Increase capacity
+
             // Resize ComponentRegistry
             for (auto it = m_registry.begin(); it != m_registry.end(); it++)
-                it->second.resize(m_slots + 1);
+                it->second->resize(m_capacity);
+
+            index = m_capacity - 1;         // Set index to newly allocated slot
+            m_entities.push_back(entity);   // Push to Entity collection
 
             #ifdef DIVVY_DEBUG
-            std::cout << "-- Added new Entity at #" << m_slots << std::endl;
+            std::cout << "-- Added new Entity at #" << index << std::endl;
             #endif
-
-            // Add a slot for the new Entity
-            return m_slots++;
         }
+
+        m_count++; // Increase Entity count
+
+        return index;
     }
 
     /**
-     * Clone an Entity in the World.
+     * Clone an Entity
      * @returns cloned Entity
      */
-    EntityID addEntity(const World& world, const Entity& other)
+    EntityID addEntity(Entity& entity, const Entity& other)
     {
-        EntityID id = addEntity();
+        EntityID id = addEntity(entity);
 
-        // Clone all Components of other Entity
-        for (auto it = world.m_registry.begin(); it != world.m_registry.end(); it++)
+        // Are the Worlds the same?
+        if (other.m_world == this)
         {
-            if (it->second.at(other.m_id) != nullptr)
+            // Clone all Components
+            for (auto it = m_registry.begin(); it != m_registry.end(); it++)
             {
-                m_registry.at(it->first).at(id) = it->second.at(other.m_id)->clone();
-                m_registry.at(it->first).at(id)->m_world = this;
-                m_registry.at(it->first).at(id)->m_entity = id;
+                if (it->second->has(other.m_id))
+                {
+                    m_registry.at(it->first)->add(id);
+                    m_registry.at(it->first)->at(id).clone(it->second->at(other.m_id));
+                    m_registry.at(it->first)->at(id).m_world = this;
+                    m_registry.at(it->first)->at(id).m_entity = id;
+                }
+            }
+        }
+        else // Worlds are different
+        {
+            // Clone over related Components
+            for (auto it = other.m_world->m_registry.begin(); it != other.m_world->m_registry.end(); it++)
+            {
+                if (it->second->has(other.m_id) &&                  // For every Component
+                    m_registry.find(it->first) != m_registry.end()) // also registered in this World
+                {
+                    m_registry.at(it->first)->add(id);
+                    m_registry.at(it->first)->at(id).clone(it->second->at(other.m_id));
+                    m_registry.at(it->first)->at(id).m_world = this;
+                    m_registry.at(it->first)->at(id).m_entity = id;
+                }
             }
         }
 
@@ -354,41 +602,79 @@ private:
     }
 
     /**
-     * Assign a Component to an Entity
-     * @returns reference to the Component assigned
+     * Remove an Entity from the World.
      */
-    template <class T, class ... Args>
-    T& addComponent(const Entity& entity, Args&& ... args)
+    void removeEntity(Entity& entity)
     {
-        if (!validComponent<T>())
-            throw std::runtime_error("Not a valid Component - class must derive from Component");
-
-        if (!hasEntity(entity))
-            throw std::runtime_error("Entity non-existent - call hasEntity() beforehand");
-
-        if (!has<T>())
-            throw std::runtime_error("Component not registered - call registerComponent() beforehand");
-
-        // Add to ComponentRegistry
-        std::string name = typeid(T).name();
-        if (m_registry.at(name).at(entity.m_id) == nullptr)
+        // Does the entity exist?
+        if (hasEntity(entity))
         {
-            m_registry.at(name).at(entity.m_id) = std::make_shared<T>(std::forward<Args>(args)...);
-            m_registry.at(name).at(entity.m_id)->m_world = this;
-            m_registry.at(name).at(entity.m_id)->m_entity = entity.m_id;
+            // Remove from ComponentRegisry
+            for (auto it = m_registry.begin(); it != m_registry.end(); it++)
+                it->second->remove(entity.m_id);
+
+            // Remove from Entity collection
+            m_entities.erase(m_entities.begin() + entity.m_id);
+
+            // Is top entity?
+            if (entity.m_id == m_capacity - 1)
+                m_capacity--;
+            else
+                m_open.insert(entity.m_id);
+
+            // Set Entity to uninitialized
+            entity.m_id = 0;
+            entity.m_world = nullptr;
+
+            // Size decrease
+            m_count--;
 
             #ifdef DIVVY_DEBUG
-            std::cout << "-- Added Component " << name << " to Entity #" << entity << std::endl;
+            std::cerr << "-- Removed " << entity << std::endl;
+            #endif
+        }
+        #ifdef DIVVY_DEBUG
+        else
+            std::cerr << "-- WARNING: " << entity << " is already non-existent" << std::endl;
+        #endif
+    }
+
+    /**
+     * Assign a Component to an Entity
+     * @throws
+     * @returns reference to the Component assigned
+     */
+    template <class T, class ... Args, typename = is_valid_component<T>>
+    T& addComponent(const Entity& entity, Args&& ... args)
+    {
+        if (!hasEntity(entity))
+            throw std::runtime_error("Entity non-existent - call Entity.reset() beforehand");
+
+        if (!has<T>())
+            throw std::runtime_error("Component not registered - call World.add<T>() beforehand");
+
+        auto& type = typeid(T);
+
+        // Add to ComponentRegistry
+        if (!m_registry.at(type)->has(entity.m_id))
+        {
+            m_registry.at(type)->add(entity.m_id);
+            m_registry.at(type)->at(entity.m_id).clone(T(std::forward<Args>(args)...));
+            m_registry.at(type)->at(entity.m_id).m_world = this;
+            m_registry.at(type)->at(entity.m_id).m_entity = entity.m_id;
+
+            #ifdef DIVVY_DEBUG
+            std::cout << "-- Added Component " << type.name() << " to " << entity << std::endl;
             #endif
         }
         #ifdef DIVVY_DEBUG
         else
         {
-            std::cerr << "-- WARNING: Component " << name << " already present on Entity #" << entity << std::endl;
+            std::cerr << "-- WARNING: Component " << type.name() << " already present on " << entity << std::endl;
         }
         #endif
 
-        return *std::dynamic_pointer_cast<T>(m_registry.at(name).at(entity.m_id));
+        return static_cast<T&>(m_registry.at(type)->at(entity.m_id));
     }
 
     /**
@@ -396,64 +682,32 @@ private:
      * @returns reference to the Component
      * @throws if not found
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     T& getComponent(const Entity& entity)
     {
-        std::string name = typeid(T).name();
         if (!hasEntity(entity))
             throw std::runtime_error("Entity non-existent - call hasEntity() beforehand");
+
         if (!hasComponent<T>(entity))
             throw std::runtime_error("Component non-existent - call hasComponent() beforehand");
-        return *std::dynamic_pointer_cast<T>(m_registry.at(typeid(T).name()).at(entity.m_id));
+
+        return static_cast<T&>(m_registry.at(typeid(T))->at(entity.m_id));
     }
 
     /**
      * Removes a Component from an Entity.
      */
-    template <class T>
+    template <class T, typename = is_valid_component<T>>
     void removeComponent(const Entity& entity)
     {
-        std::string name = typeid(T).name();
+        auto& type = typeid(T);
 
         #ifdef DIVVY_DEBUG
-        if (m_registry.at(name).at(entity.m_id) == nullptr)
-            std::cerr << "-- WARNING: Component " << name << " already absent on Entity #" << entity << std::endl;
+        if (!m_registry.at(type)->has(entity.m_id))
+            std::cerr << "-- WARNING: Component " << type.name() << " already absent on " << entity << std::endl;
         #endif
 
-        m_registry.at(name).at(entity.m_id) = nullptr;
-    }
-
-    /**
-     * Remove an Entity from the World.
-     */
-    void removeEntity(Entity& entity)
-    {
-        // Is the entity non-existent?
-        if (!hasEntity(entity))
-        {
-            #ifdef DIVVY_DEBUG
-            std::cerr << "-- WARNING: Entity #" << entity << " is already non-existent" << std::endl;
-            #endif
-
-            return;
-        }
-
-        // Remove from ComponentRegisry
-        for (auto it = m_registry.begin(); it != m_registry.end(); it++)
-            it->second.at(entity.m_id) = nullptr;
-
-        // Is top entity?
-        if (entity.m_id == m_slots - 1)
-            m_slots--;
-        else
-            m_open.insert(entity.m_id);
-
-        #ifdef DIVVY_DEBUG
-        std::cerr << "-- Removed Entity #" << entity << std::endl;
-        #endif
-
-        entity.m_id = 0;
-        entity.m_world = nullptr;
+        m_registry.at(type)->remove(entity.m_id);
     }
 
 };
@@ -462,29 +716,34 @@ private:
 
 Entity::Entity(World& world)
 : m_world(&world),
-  m_id(world.addEntity())
+  m_id(world.addEntity(*this))
 {
 }
 
 Entity::Entity(const Entity& other)
 : m_world(other.m_world)
 {
-    if (!valid())
-        throw std::runtime_error("Null entity, cannot copy");
-
-    m_id = m_world->addEntity(*other.m_world, other);
+    if (valid())
+    {
+        m_id = m_world->addEntity(*this, other);
+    }
+    #ifdef DIVVY_DEBUG
+    else
+    {
+        std::cerr << "-- WARNING: Copying an uninitialized Entity" << std::endl;
+    }
+    #endif
 }
 
-Entity::Entity(World& world, const Entity& other)
+Entity::Entity(const Entity& other, World& world)
 : m_world(&world),
-  m_id(world.addEntity(world, other))
+  m_id(world.addEntity(*this, other))
 {
 }
 
 Entity::~Entity()
 {
-    if (valid())
-        destroy();
+    reset();
 }
 
 Entity& Entity::operator=(const Entity& rhs)
@@ -494,77 +753,83 @@ Entity& Entity::operator=(const Entity& rhs)
     return *this;
 }
 
-template <class T, class ... Args>
+template <class T, class ... Args, typename>
 inline T& Entity::add(Args&& ... args)
 {
     if (!valid())
-        throw std::runtime_error("Null entity, cannot add Component");
+        throw std::runtime_error("Uninitialized Entity, cannot add Component");
 
     return m_world->addComponent<T>(*this, std::forward<Args>(args)...);
 }
 
-template <class T>
+template <class T, typename>
 inline bool Entity::has()
 {
     if (!valid())
-        throw std::runtime_error("Null entity, cannot check for Component");
+        throw std::runtime_error("Uninitialized Entity, cannot check for Component");
 
     return m_world->hasComponent<T>(*this);
 }
 
-template <class T>
+template <class T, typename>
 inline T& Entity::get()
 {
     if (!valid())
-        throw std::runtime_error("Null entity, cannot get Component");
+        throw std::runtime_error("Uninitialized Entity, cannot get Component");
 
     return m_world->getComponent<T>(*this);
 }
 
-template <class T>
+template <class T, typename>
 inline void Entity::remove()
 {
     if (!valid())
-        throw std::runtime_error("Null entity, cannot remove Component");
+        throw std::runtime_error("Uninitialized Entity, cannot remove Component");
 
     m_world->removeComponent<T>(*this);
+}
+
+inline void Entity::reset()
+{
+    if (valid())
+        m_world->removeEntity(*this);
 }
 
 inline void Entity::reset(World& world)
 {
     if (valid())
-        destroy();
+        m_world->removeEntity(*this);
 
     m_world = &world;
-    m_id = m_world->addEntity();
+    m_id = world.addEntity(*this);
 }
 
 inline void Entity::reset(const Entity& other)
 {
-    if (!valid())
-        destroy();
-
-    if (!valid())
-        throw std::runtime_error("Null entity, cannot copy");
+    if (valid())
+        m_world->removeEntity(*this);
 
     m_world = other.m_world;
-    m_id = m_world->addEntity(*other.m_world, other);
+
+    if (valid())
+    {
+        m_id = m_world->addEntity(*this, other);
+    }
+    #ifdef DIVVY_DEBUG
+    else
+    {
+        std::cerr << "-- WARNING: Resetting to a copy of an uninitialized Entity" << std::endl;
+    }
+    #endif
 }
 
-inline void Entity::reset(World& world, const Entity& other)
+inline void Entity::reset(const Entity& other, World& world)
 {
-    if (!valid())
-        destroy();
+    if (valid())
+        m_world->removeEntity(*this);
+
     m_world = &world;
-    m_id = m_world->addEntity(*m_world, other);
-}
-
-inline void Entity::destroy()
-{
-    if (!valid())
-        throw std::runtime_error("Null entity, cannot destroy");
-
-    m_world->removeEntity(*this);
+    m_id = world.addEntity(*this, other);
 }
 
 } // namespace divvy
