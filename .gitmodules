@@ -1,3 +1,6 @@
 [submodule "dep/googletest"]
 	path = dep/googletest
 	url = https://github.com/smarr/googletest
+[submodule "test/googletest"]
+	path = test/googletest
+	url = https://chromium.googlesource.com/external/googletest.git
