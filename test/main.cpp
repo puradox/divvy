@@ -2,15 +2,12 @@
 
 #include "gtest/gtest.h"
 
-#define DIVVY_DEBUG
+//#define DIVVY_DEBUG
 #include "divvy.hpp"
 
 using namespace divvy;
 
 //=============================[ Fixture Testing Class ]=================================
-/*
- * Basic setup for testing
- */
 
 class DivvyTest : public ::testing::Test
 {
@@ -19,26 +16,31 @@ protected:
 };
 
 //=============================[ Component Example #1 ]==================================
-/*
- * Example of a Component
- */
 
 class Transform : public Component
 {
 public:
     Transform() {}
 
-    Transform(int x, int y)
-    : m_x(x), m_y(y) {}
+    Transform(int x, int y) : m_x(x), m_y(y) {}
 
     virtual void update()
     {
-        std::cout << "Transform: (" << m_x << "," << m_y << ")" << std::endl;
+        #ifdef DIVVY_DEBUG
+        std::cout << "Old Transform: (" << m_x << "," << m_y << ")" << std::endl;
+        #endif
+
+        m_x++;
+        m_y++;
+
+        #ifdef DIVVY_DEBUG
+        std::cout << "New Transform: (" << m_x << "," << m_y << ")" << std::endl;
+        #endif
     }
 
     virtual void clone(const Component& other)
     {
-        const Transform& derived = static_cast<const Transform&>(other);
+        auto& derived = static_cast<const Transform&>(other);
 
         m_x = derived.m_x;
         m_y = derived.m_y;
@@ -64,28 +66,24 @@ private:
 };
 
 //=============================[ Component Example #2 ]==================================
-/*
- * Another example of a Component
- */
 
 class Nametag : public Component
 {
 public:
     Nametag() {}
 
-    Nametag(const std::string& name)
-    : m_name(name) {}
+    Nametag(const std::string& name) : m_name(name) {}
 
     virtual void update()
     {
+        #ifdef DIVVY_DEBUG
         std::cout << "Name: " << m_name << std::endl;
+        #endif
     }
 
     virtual void clone(const Component& other)
     {
-        const Nametag& derived = static_cast<const Nametag&>(other);
-
-        m_name = derived.m_name;
+        m_name = static_cast<const Nametag&>(other).m_name;
     }
 
     Nametag& setName(const std::string& name)
@@ -324,6 +322,9 @@ TEST_F(DivvyTest, EntityResetCopyOtherWorld)
     player.add<Transform>(1,2);
     player.add<Nametag>("player");
 
+    ASSERT_TRUE(player.has<Transform>());
+    ASSERT_TRUE(player.has<Nametag>());
+
     World world2;
     world2.add<Transform>();
 
@@ -335,6 +336,32 @@ TEST_F(DivvyTest, EntityResetCopyOtherWorld)
 
     ASSERT_EQ(1, copy.get<Transform>().getX());
     ASSERT_EQ(2, copy.get<Transform>().getY());
+}
+
+//==================================[ World Update ]=====================================
+
+TEST_F(DivvyTest, WorldUpdate)
+{
+    world.add<Transform>();
+
+    Entity player(world);
+    player.add<Transform>(1, 2);
+
+    ASSERT_TRUE(player.has<Transform>());
+    ASSERT_EQ(1, player.get<Transform>().getX());
+    ASSERT_EQ(2, player.get<Transform>().getY());
+
+    world.update();
+
+    ASSERT_EQ(2, player.get<Transform>().getX());
+    ASSERT_EQ(3, player.get<Transform>().getY());
+}
+
+//=================================[ Multiple Worlds ]===================================
+
+TEST_F(DivvyTest, MultipleWorlds)
+{
+
 }
 
 //=======================================[ Main ]========================================
