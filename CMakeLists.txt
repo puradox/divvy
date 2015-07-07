@@ -5,7 +5,7 @@ project(divvy)
 include_directories(include)
 
 # Compiler configuration
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -g")
 
 # Enable testing
 enable_testing()
