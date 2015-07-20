@@ -203,6 +203,13 @@ public:
     inline void reset(World& world);
 
     /**
+     * Moves an Entity in the same World.
+     *
+     * @param other     The Entity to move.
+     */
+    inline void reset(Entity&& other);
+
+    /**
      * Recreates a clone of an Entity in the same World.
      *
      * @param other     The Entity to clone.
@@ -824,18 +831,18 @@ private:
     /// Collection of Entities created in this World
     std::vector<std::reference_wrapper<Entity>> m_entities;
 
-    /// Current capacity of possible Entities that could exist in the World.
-    size_t m_capacity = 0;
-
-    /// Count of Entities currently existing in the World.
-    size_t m_count = 0;
-
     /**
      * An ordered queue in which Entities were deleted in.
      * Serves the purpose of filling in gaps in memory where Entities were
      * previously deleted.
      */
     std::set<int> m_open;
+
+    /// Current capacity of possible Entities that could exist in the World.
+    size_t m_capacity = 0;
+
+    /// Count of Entities currently existing in the World.
+    size_t m_count = 0;
 
     friend class Entity;
 };
@@ -947,6 +954,18 @@ inline void Entity::reset(World& world)
 
     m_world = &world;
     m_id = world.addEntity(*this);
+}
+
+inline void Entity::reset(Entity&& other)
+{
+    if (other.m_world)
+    {
+        other.m_world->replaceEntity(other, *this);
+
+        m_id = other.m_id;
+        m_world = other.m_world;
+        other.m_world = nullptr;
+    }
 }
 
 inline void Entity::reset(const Entity& other)
