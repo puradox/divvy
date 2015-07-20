@@ -97,7 +97,7 @@ For a more detailed test with additional information and time log:
 
 Divvy is based on the usage of three different classes types, each will be further explained in their own section.
   - [`Component`](#component): The base class that all Components have to derive from.
-  - [`Entity`](#entity): Identifier that unifies a collection of Components. Also acts as a helper class to access Components.
+  - [`Entity`](#entity): Identifier that unifies a collection of Components. Acts as an interface to manipulate Components.
   - [`World`](#world): Container for all Components and Entity associations.
 
 ## Component
