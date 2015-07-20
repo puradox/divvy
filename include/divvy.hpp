@@ -122,7 +122,7 @@ class Entity
 {
 public:
     /**
-     * Creates a null Entity.
+     * Creates an invalid Entity.
      */
     Entity() {}
 
@@ -169,7 +169,7 @@ public:
     inline T& add(Args&& ... args);
 
     /**
-     * Check if a Component is assined to this Entity.
+     * Check if a Component is assigned to this Entity.
      *
      * @return          True if component is assigned, false otherwise.
      */
@@ -185,39 +185,39 @@ public:
     inline T& get();
 
     /**
-     * Removes a Component from this Entity.
+     * Remove a Component from this Entity.
      */
     template <class T, typename = is_valid_component<T>>
     inline void remove();
 
     /**
-     * Recreates an uninitialized Entity.
+     * Recreate an unvalid Entity.
      */
     inline void reset();
 
     /**
-     * Recreates an Entity in the specified World.
+     * Recreate an Entity in the specified World.
      *
      * @param world     The world used to create an Entity.
      */
     inline void reset(World& world);
 
     /**
-     * Moves an Entity in the same World.
+     * Move an Entity in the same World.
      *
      * @param other     The Entity to move.
      */
     inline void reset(Entity&& other);
 
     /**
-     * Recreates a clone of an Entity in the same World.
+     * Recreate a clone of an Entity in the same World.
      *
      * @param other     The Entity to clone.
      */
     inline void reset(const Entity& other);
 
     /**
-     * Recreates a clone of an Entity in the specified World.
+     * Recreate a clone of an Entity in the specified World.
      *
      * @param other     The Entity to clone.
      * @param world     The World to clone the Entity in.
@@ -225,7 +225,7 @@ public:
     inline void reset(const Entity& other, World& world);
 
     /**
-     * Checks whether an Entity is valid.
+     * Check whether an Entity is valid.
      *
      * @return true if valid, false otherwise.
      */
@@ -516,7 +516,7 @@ public:
     }
 
     /**
-     * Checks whether a Component is registered in the World.
+     * Check whether a Component type is registered in the World.
      *
      * @return          True if the Component is registered, false otherwise.
      */
@@ -529,7 +529,7 @@ public:
     }
 
     /**
-     * Unregister a Component in this World.
+     * Unregister a Component type in this World.
      */
     template <class T, typename = is_valid_component<T>>
     void remove()
@@ -542,7 +542,7 @@ public:
     }
 
     /**
-     * Clears the World of all Entities and Components
+     * Clear the World of all Entities and Components.
      */
     void clear()
     {
@@ -559,13 +559,13 @@ public:
     }
 
     /**
-     * Update all the Components registered in the World
+     * Update all the Components in this World.
      */
     void update()
     {
-        for (auto it = m_registry.begin(); it != m_registry.end(); it++)          // For every Component type,
-            for (unsigned int i = 0; i < m_capacity; i++)                         // In the capacity range,
-                if (it->second->has(i) == true && m_open.find(i) == m_open.end()) // That is active and existing,
+        for (auto it = m_registry.begin(); it != m_registry.end(); it++)          // For every Component type
+            for (unsigned int i = 0; i < m_capacity; i++)                         // In the capacity range
+                if (it->second->has(i) == true && m_open.find(i) == m_open.end()) // That is active and existing
                     it->second->at(i).update();                                   // Update.
     }
 
