@@ -122,33 +122,33 @@ class Entity
 {
 public:
     /**
-     * Creates an invalid Entity.
+     * Create an invalid Entity.
      */
     Entity() {}
 
     /**
-     * Creates an Entity in the specified World.
+     * Create an Entity in the specified World.
      *
      * @param world     The world used to create an Entity.
      */
     Entity(World& world);
 
     /**
-     * Moves an Entity into this Entity.
+     * Move an Entity into this Entity.
      *
      * @param other     The Entity to move.
      */
     Entity(Entity&& other);
 
     /**
-     * Creates a clone of an Entity in the same World.
+     * Create a clone of an Entity in the same World.
      *
      * @param other     The Entity to clone.
      */
     Entity(const Entity& other);
 
     /**
-     * Creates a clone of an Entity in the specified World.
+     * Create a clone of an Entity in the specified World.
      *
      * @param other     The Entity to clone.
      * @param world     The World to clone the Entity in.
@@ -246,7 +246,7 @@ private:
 };
 
 /**
- * Displays the EntityID of an Entity to a standard output stream.
+ * Display the EntityID of an Entity to a standard output stream.
  *
  * @param   stream      The stream to ouput to.
  * @param   entity      The Entity to display information about.
@@ -326,7 +326,7 @@ public:
     virtual void resize(size_t size) = 0;
 
     /**
-     * Updates all active Components in the pool.
+     * Update all active Components in the pool.
      */
     virtual void update() = 0;
 };
@@ -445,7 +445,7 @@ public:
     }
 
     /**
-     * Updates all active Components in the pool.
+     * Update all active Components in the pool.
      */
     virtual void update()
     {
@@ -467,7 +467,8 @@ private:
 // =====================================[ World ]========================================
 
 /**
- * Implement make_unique for C++11 ~ since it was "partly an oversight."
+ * Implementation of make_unique for C++11 ~ since it was "partly an oversight."
+ * Create a unique_ptr object.
  *
  * @param args      Arguments to forward to the creation of <T> object.
  *
@@ -490,7 +491,7 @@ class World
 {
 public:
     /**
-     * Destructor; invalidates all Entities that is assigned to this World.
+     * Invalidate all Entities that is assigned to this World.
      */
     ~World()
     {
@@ -571,7 +572,7 @@ public:
 
 private:
     /**
-     * Checks whether an Entity is nonexistent or null.
+     * Check whether an Entity is nonexistent or null.
      *
      * @param entity    Reference to the Entity to check.
      *
@@ -585,7 +586,7 @@ private:
     }
 
     /**
-     * Checks whether an Entity contains a specific Component.
+     * Check whether an Entity contains a specific Component.
      *
      * @param entity    Reference to the Entity to check.
      *
@@ -800,7 +801,7 @@ private:
     }
 
     /**
-     * Removes a Component from an Entity.
+     * Remove a Component from an Entity.
      *
      * @param entity    Reference to the target Entity.
      */
@@ -854,7 +855,7 @@ private:
  * Go back to the Entity class declaration if you want to view the documentation.
  *
  * I was forced to wait until after I implemented the World class to implement all this
- * because all of the Entity methods redirects to World methods.
+ * since all of the Entity methods redirects to World methods.
  *
  * Remember, Entity is simply an interface.
  *
