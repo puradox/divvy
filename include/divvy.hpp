@@ -1,5 +1,5 @@
 /*
- * Divvy v0.6 - a modern, simple component framework.
+ * Divvy v0.7 - a modern, simple component framework.
  *
  * Licensed under The MIT License (MIT)
  *
@@ -159,13 +159,6 @@ public:
      * Destructor
      */
     ~Entity();
-
-    /**
-     * Move operator, moves an Entity into this Entity.
-     *
-     * @param other     Entity to be duplicated.
-     */
-    Entity& operator=(Entity&& other);
 
     /**
      * Assign a Component to this Entity.
@@ -873,8 +866,9 @@ Entity::Entity(Entity&& other)
     {
         other.m_world->replaceEntity(other, *this);
 
-        m_id = std::move(other.m_id);
-        m_world = std::move(other.m_world);
+        m_id = other.m_id;
+        m_world = other.m_world;
+        other.m_world = nullptr;
     }
 }
 
@@ -902,19 +896,6 @@ Entity::Entity(const Entity& other, World& world)
 Entity::~Entity()
 {
     reset();
-}
-
-Entity& Entity::operator=(Entity&& other)
-{
-    if (other.m_world)
-    {
-        other.m_world->replaceEntity(other, *this);
-
-        m_id = std::move(other.m_id);
-        m_world = std::move(other.m_world);
-    }
-
-    return *this;
 }
 
 template <class T, class ... Args, typename>
