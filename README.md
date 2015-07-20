@@ -41,7 +41,7 @@ public:
     {
         m_name = divvy::cast<Nametag>(other).m_name;
     }
-    
+
     void setName(const std::string& name) { m_name = name; }
 
 private:
@@ -57,9 +57,9 @@ int main()
     hero.add<Nametag>("Mario");
 
     world.update(); // OUTPUT: Hello! My name is Mario.
-    
+
     hero.get<Nametag>().setName("Luigi");
-    
+
     world.update(); // OUTPUT: Hello! My name is Luigi.
 }
 ```
@@ -105,17 +105,19 @@ Divvy is based on the usage of three different classes types, each will be furth
 For a quick reference, here is the full list of public methods available by class.
 
 **Entity**
-  - `Entity()` - Creates an invalid Entity.
-  - `Entity(World& world)` - Creates an Entity in the specified World.
-  - `Entity(Entity&& other)` - Moves an Entity into this Entity.
-  - `Entity(const Entity& other)` - Creates a clone of an Entity in the same World.
-  - `Entity(const Entity& other, World& world)` - Creates a clone of an Entity in the specified World.
-  - `Component& Entity.add<Component>(...)` - Assign a Component to this Entity.
-  - `Component& Entity.get<Component>()` - Retrieve a Component.
-  - `bool Entity.has<Component>()` - Check if a Component is assigned to this Entity.
-  - `void Entity.remove<Component>()` - Remove a Component from this Entity.
-  - `void Entity.reset()` - Recreate an invalid Entity **(There is a corresponding reset method for every constructor)**
-  - `Entity.valid()` - Check whether an Entity is valid.
+|Method|Description|
+|------|-----------|
+|`Entity()`|Creates an invalid Entity.|
+|`Entity(World& world)`|Creates an Entity in the specified World.|
+|`Entity(Entity&& other)`|Moves an Entity into this Entity.|
+|`Entity(const Entity& other)`|Creates a clone of an Entity in the same World.|
+|`Entity(const Entity& other, World& world)`|Creates a clone of an Entity in the specified World.|
+|`Component& Entity.add<Component>(...)`|Assign a Component to this Entity.|
+|`Component& Entity.get<Component>()`|Retrieve a Component.|
+|`bool Entity.has<Component>()`|Check if a Component is assigned to this Entity.|
+|`void Entity.remove<Component>()`|Remove a Component from this Entity.|
+|`void Entity.reset()`|Recreate an invalid Entity **(There is a corresponding reset method for every constructor)**|
+|`Entity.valid()`|Check whether an Entity is valid.|
 ```
 **World**
 ```C++
@@ -142,7 +144,7 @@ Note that `divvy::cast<T>(other)` is the exact same as `static_cast<const T&>(ot
 
 ## World
 
-A `World` contains all of the possible component types that you can add to an `Entity`. 
+A `World` contains all of the possible component types that you can add to an `Entity`.
 
 ```C++
 divvy::World world;
@@ -310,7 +312,7 @@ class Physics : public divvy::Component
             m_entity->remove<Physics>();
         }
     }
-    
+
     ...
 }
 ```
@@ -327,6 +329,6 @@ This immediately deactives the Component and removes it from the `Entity` that i
 
 ## That's all!
 
-If you have any more questions about Divvy and how it works, you could either 
+If you have any more questions about Divvy and how it works, you could either
   - [Email me](mailto:sambalana247@gmail.com)
-  - View the [source code](https://github.com/puradox/divvy/blob/master/include/divvy.hpp) directly (fully documented and not too long) 
+  - View the [source code](https://github.com/puradox/divvy/blob/master/include/divvy.hpp) directly (fully documented and not too long)
