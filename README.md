@@ -97,16 +97,42 @@ For a more detailed test with additional information and time log:
 
 Divvy is based on the usage of three different classes types, each will be further explained in their own section.
   - [`Component`](#component): The base class that all Components have to derive from.
-  - [`Entity`](#entity): Identifier that unifies a collection of Components. Acts as an interface to manipulate Components.
+  - [`Entity`](#entity): Identifier that unifies a collection of Components. An interface to manipulate Components.
   - [`World`](#world): Container for all Components and Entity associations.
+
+## Quick Reference
+
+For a quick reference, here is the full list of public methods available by class.
+
+**Entity**
+  - `Entity()` - Creates an invalid Entity.
+  - `Entity(World& world)` - Creates an Entity in the specified World.
+  - `Entity(Entity&& other)` - Moves an Entity into this Entity.
+  - `Entity(const Entity& other)` - Creates a clone of an Entity in the same World.
+  - `Entity(const Entity& other, World& world)` - Creates a clone of an Entity in the specified World.
+  - `Component& Entity.add<Component>(...)` - Assign a Component to this Entity.
+  - `Component& Entity.get<Component>()` - Retrieve a Component.
+  - `bool Entity.has<Component>()` - Check if a Component is assigned to this Entity.
+  - `void Entity.remove<Component>()` - Remove a Component from this Entity.
+  - `void Entity.reset()` - Recreate an invalid Entity **(There is a corresponding reset method for every constructor)**
+  - `Entity.valid()` - Check whether an Entity is valid.
+```
+**World**
+```C++
+void World.add<Component>() - Register a Component type to this World.
+bool World.has<Component>() - Check whether a Component type is registered in this World.
+void World.remove<Component>() - Unregister a Component type in this World.
+void World.clear() - Clear the World of all Entities and Components.
+void World.update() - Update all the Components in this World.
+```
 
 ## Component
 
-Components are essential to decoupling code and forming a modular codebase. It is meant to be inherited and changed into your own component type. To start, we will need to create our own component. To create a valid component, we have to adhere to the following rules:
+Components are essential to decoupling code and forming a modular codebase. `Component` is meant to be inherited into your own component type. To create a valid component, we must adhere to the following rules:
   1. Publicly inherit from `divvy::Component`
   2. Implement a default constructor that takes no arguments
 
-`Component` contains two pure virtual methods that you have to implement when creating your own components, `update` and `clone`.
+`Component` contains two pure virtual methods that you have to implement when creating your own component:
   - `update`: provides functionality to your `Component`
   - `clone`: provides copy semantics to your `Component`
 
