@@ -102,7 +102,11 @@ Divvy is based on the usage of three different classes types, each will be furth
 
 ## Quick Reference
 
-For a quick reference, here is the full list of public methods available by class.
+Here is the full list of public constructors and methods available, by class.
+
+| `Component` Function                       | Description                    |
+|--------------------------------------------|--------------------------------|
+| `const T& cast<T>(const Component& other)` | Cast base to derived Component |
 
 | `Entity` Constructor                        | Description                             |
 |---------------------------------------------|-----------------------------------------|
@@ -151,7 +155,7 @@ A `World` contains all of the possible component types that you can add to an `E
 divvy::World world;
 ```
 
-#### Adding Component Types to a World
+#### Adding Component Types
 
 It is important that we add all the component types that we want into the `World` before we assign any components to an `Entity`.
 
@@ -159,7 +163,7 @@ It is important that we add all the component types that we want into the `World
 world.add<Nametag>();
 ```
 
-#### Checking Component Types in a World
+#### Checking Component Types
 
 ```C++
 world.has<Nametag>();
@@ -167,7 +171,7 @@ world.has<Nametag>();
 
 The `has` method checks whether a specific component type exists in a `World`. It returns `true` if the component type is included in the `World`, false otherwise.
 
-#### Updating the World
+#### Updating
 
 Whenever a `World` is updated, all of the Components that are active inside the `World` are updated as well.
 
@@ -175,7 +179,7 @@ Whenever a `World` is updated, all of the Components that are active inside the 
 world.update();
 ```
 
-#### Removing Component Types in a World
+#### Removing Component Types
 
 We can remove component types in the same manner in which we added them.
 
@@ -185,7 +189,7 @@ world.remove<Nametag>();
 
 Any Entities that have the removed `Component` assigned will have it removed.
 
-#### Clearing a World
+#### Clearing
 
 ```C++
 world.clear();
@@ -209,7 +213,7 @@ hero.reset(world);
 
 Although these two ways are equivalent, the reset method is most useful when creating an array of `Entity`. In which case Entities would be created using the default constructor, which doesn't assign a `World`. So to combat this, you could run the `reset` method on all of the elements in the array to assign a `World`. **Note: there is a corresponding `reset` method for every constructor of `Entity`.**
 
-#### Checking validity of an Entity
+#### Checking validity
 
 The validity of an `Entity` depends of whether or not it is associated with a `World`. You can check the validity of an `Entity` with the `valid` method, which returns either `true` or `false`.
 
@@ -217,7 +221,7 @@ The validity of an `Entity` depends of whether or not it is associated with a `W
 hero.valid();
 ```
 
-#### Adding Components to an Entity
+#### Adding Components
 
 ```C++
 hero.add<Nametag>("Mario");
@@ -225,7 +229,7 @@ hero.add<Nametag>("Mario");
 
 When Components are added to Entities, the constructor that matches the parameter list of `add` will be called. This allows for overloaded constructors to be utilized.
 
-#### Retrieving Components from an Entity
+#### Retrieving Components
 
 The `Entity` interface also makes retrieving components as easy as adding them.
 
@@ -235,7 +239,7 @@ hero.get<Nametag>().setName("Luigi");
 world.update(); // OUTPUT: Hello! My name is Luigi.
 ```
 
-#### Copying/Moving Entities
+#### Copying/Moving
 
 Entities have the additional functionality of being copable and movable. However, it is important to remember that copying and moving are fundamentially different.
   - **Copying**: calls the `clone` method of each Component, which copies the specified variables
@@ -262,7 +266,7 @@ Hello! My name is Bowser.
 */
 ```
 
-#### Copying Entities Between Worlds
+#### Copying Between Worlds
 
 If a situation appears in which you would want to copy Entities between two different worlds, there are two different ways to approach it.
 
