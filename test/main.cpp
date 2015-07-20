@@ -40,7 +40,7 @@ public:
 
     virtual void clone(const Component& other)
     {
-        auto& derived = static_cast<const Transform&>(other);
+        auto& derived = cast<Transform>(other);
 
         m_x = derived.m_x;
         m_y = derived.m_y;
@@ -100,18 +100,18 @@ private:
 
 //================================[ World Register ]=====================================
 
-TEST_F(DivvyTest, WorldHasComponentRegistered)
+TEST_F(DivvyTest, WorldHasComponent)
 {
     ASSERT_FALSE(world.has<Transform>());
 }
 
-TEST_F(DivvyTest, WorldRegisterComponent)
+TEST_F(DivvyTest, WorldAddComponent)
 {
     world.add<Transform>();
     ASSERT_TRUE(world.has<Transform>());
 }
 
-TEST_F(DivvyTest, WorldUnregisterComponent)
+TEST_F(DivvyTest, WorldRemoveComponent)
 {
     world.add<Transform>();
     ASSERT_TRUE(world.has<Transform>());
@@ -255,6 +255,20 @@ TEST_F(DivvyTest, EntityCopy)
     ASSERT_EQ(2, copy.get<Transform>().getY());
 }
 
+TEST_F(DivvyTest, EntityCopyEquals)
+{
+    world.add<Transform>();
+
+    Entity player(world);
+    player.add<Transform>(1,2);
+
+    Entity copy = player;
+
+    ASSERT_TRUE(copy.valid());
+    ASSERT_EQ(1, copy.get<Transform>().getX());
+    ASSERT_EQ(2, copy.get<Transform>().getY());
+}
+
 TEST_F(DivvyTest, EntityCopyOtherWorld)
 {
     // World 1
@@ -278,6 +292,40 @@ TEST_F(DivvyTest, EntityCopyOtherWorld)
     ASSERT_TRUE(copy.has<Transform>());
     ASSERT_FALSE(copy.has<Nametag>());
 
+    ASSERT_EQ(1, copy.get<Transform>().getX());
+    ASSERT_EQ(2, copy.get<Transform>().getY());
+}
+
+//===================================[ Entity Move ]=====================================
+
+TEST_F(DivvyTest, EntityMove)
+{
+    world.add<Transform>();
+
+    Entity player(world);
+    player.add<Transform>(1,2);
+
+    Entity copy(std::move(player));
+
+    ASSERT_FALSE(player.valid());
+
+    ASSERT_TRUE(copy.valid());
+    ASSERT_EQ(1, copy.get<Transform>().getX());
+    ASSERT_EQ(2, copy.get<Transform>().getY());
+}
+
+TEST_F(DivvyTest, EntityMoveEquals)
+{
+    world.add<Transform>();
+
+    Entity player(world);
+    player.add<Transform>(1,2);
+
+    Entity copy = std::move(player);
+
+    ASSERT_FALSE(player.valid());
+
+    ASSERT_TRUE(copy.valid());
     ASSERT_EQ(1, copy.get<Transform>().getX());
     ASSERT_EQ(2, copy.get<Transform>().getY());
 }
@@ -357,18 +405,17 @@ TEST_F(DivvyTest, WorldUpdate)
     ASSERT_EQ(3, player.get<Transform>().getY());
 }
 
-//=================================[ Multiple Worlds ]===================================
-
-TEST_F(DivvyTest, MultipleWorlds)
-{
-
-}
-
 //=======================================[ Main ]========================================
 
 int main(int argc, char** argv)
 {
-    World w;
+    std::cout << "sizeof(Component): " << sizeof(Component) << std::endl;
+    std::cout << "sizeof(Entity): " << sizeof(Entity) << std::endl;
+    std::cout << "sizeof(World): " << sizeof(World) << std::endl << std::endl;
+
+    std::cout << "sizeof(Transform): " << sizeof(Transform) << std::endl;
+    std::cout << "sizeof(Nametag): " << sizeof(Nametag) << std::endl << std::endl;
+
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
