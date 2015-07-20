@@ -1,5 +1,5 @@
 # Divvy - A lightweight Component Entity framework [![Build Status](https://travis-ci.org/puradox/divvy.svg?branch=master)](https://travis-ci.org/puradox/divvy)
-##### Current version: v0.7
+##### Current version: v0.8
 
 Divvy is a lightweight component entity framework made in C++11. Licensed under the MIT license and designed to be extremely easy to integrate, it's purpose is to ease development where big, monolithic class structures would normally be the answer. See all of the details, benefits, and drawbacks of the *Component pattern* [here](http://gameprogrammingpatterns.com/component.html).
 
@@ -76,14 +76,31 @@ int main()
 
 To view more examples, visit the `examples` folder in this repository.
 
-## Documentation
+## Testing
+
+Unit tests are ran on the [GoogleTest framework](https://code.google.com/p/googletest/); however, you don't have to download/install GoogleTest in order to run the tests, since it is a git submodule of this repository.
+
+To clone and test this repository with GoogleTest on Linux:
+```
+git clone --recursive https://github.com/puradox/divvy
+cd divvy && mkdir build && cd build
+cmake ..
+make && make test
+```
+
+For a more detailed test with additional information and time log:
+```
+./test/divvy_test
+```
+
+# Documentation
 
 Divvy is based on the usage of three different classes types, each will be further explained in their own section.
-  - `Component`: The base class that all Components have to derive from.
-  - `Entity`: Identifier that unifies a collection of Components. Also acts as a helper class to access Components.
-  - `World`: Container for all Components and Entity associations.
+  - [`Component`](#component): The base class that all Components have to derive from.
+  - [`Entity`](#entity): Identifier that unifies a collection of Components. Also acts as a helper class to access Components.
+  - [`World`](#world): Container for all Components and Entity associations.
 
-#### Components
+## Component
 
 Components are essential to decoupling code and forming a modular codebase. It is meant to be inherited and changed into your own component type. To start, we will need to create our own component. To create a valid component, we have to adhere to the following rules:
   1. Publicly inherit from `divvy::Component`
@@ -93,51 +110,33 @@ Components are essential to decoupling code and forming a modular codebase. It i
   - `update`: provides functionality to your `Component`
   - `clone`: provides copy semantics to your `Component`
 
-Note that `divvy::cast<T>(other)` is the exact same as `static_cast<const T&>(other)`. The `cast` function was added in v0.6 to help readability when implementing the virtual clone method of `Component`, there is no extra functionality behind it.
-
 Additionally, Components hold a pointer `m_entity` to the Entity that is assigned to them. Later on, we will see how this is useful and where you could possibily use it. (See [Checking For Components](#checking-for-components))
 
-#### World
+Note that `divvy::cast<T>(other)` is the exact same as `static_cast<const T&>(other)`. The `cast` function was added in v0.6 to help readability when implementing the virtual clone method of `Component`, there is no extra functionality behind it.
 
-Once we have a valid component, we have to add the component type to a `World`.
+## World
 
-A `World` contains all of the possible component types that you can add to an `Entity`. Thus, it is important that we add all the component types that we want into the `World` before we assign any components to an `Entity`.
+A `World` contains all of the possible component types that you can add to an `Entity`. 
 
 ```C++
 divvy::World world;
+```
+
+#### Adding Component Types to a World
+
+It is important that we add all the component types that we want into the `World` before we assign any components to an `Entity`.
+
+```C++
 world.add<Nametag>();
 ```
 
-#### Entity
-
-`Entity` is the interface to add, remove, and retrieve components. To act as this interface, Entities have to be assigned to a `World`, since the `World` is what holds all of the Components. Keep in mind that if there is no `World` assigned, the `Entity` is considered to be invalid and won't be of any use. Trying to use an invalid `Entity` will result in an exception being thrown.
-
-There are two ways that can accomplish creating a valid Entity:
-
-Either by passing a `World` to the constructor,
-```C++
-divvy::Entity hero(world);
-```
-or by passing a `World` to the `reset(...)` method.
-```C++
-divvy::Entity hero;
-hero.reset(world);
-```
-
-You can check the validity of an Entity with the `valid` method, which returns either `true` or `false`
-```C++
-hero.valid();
-```
-
-Although these two ways are equivalent, the reset method is most useful when creating an array of `Entity`. In which case Entities would be created using the default constructor which doesn't assign a `World`. **Note that there is a corresponding `reset` method for every constructor of `Entity`.**
-
-#### Adding Components to an Entity
-
-When Components are added to Entities, the constructor that matches the parameter list will be called. This allows for overloaded constructors to be utilized.
+#### Checking Component Types in a World
 
 ```C++
-hero.add<Nametag>("Mario");
+world.has<Nametag>();
 ```
+
+The `has` method checks whether a specific component type exists in a `World`. It returns `true` if the component type is included in the `World`, false otherwise.
 
 #### Updating the World
 
@@ -145,6 +144,56 @@ Whenever a `World` is updated, all of the Components that are active inside the 
 
 ```C++
 world.update();
+```
+
+#### Removing Component Types in a World
+
+We can remove component types in the same manner in which we added them.
+
+```C++
+world.remove<Nametag>();
+```
+
+Any Entities that have the removed `Component` assigned will have it removed.
+
+#### Clearing a World
+
+```C++
+world.clear();
+```
+
+Clearing a `World` results in the deactivation of all the Components and Entities that are associated with it. This means that any existing Entities that operate under the cleared `World` will become invalid.
+
+## Entity
+
+`Entity` is the interface to add, remove, and retrieve components. To act as this interface, Entities have to be assigned to a `World`, since the `World` is what holds all of the Components. If there is no `World` assigned, the `Entity` is considered to be invalid and won't be of any use. Trying to use an invalid `Entity` will result in an exception being thrown.
+
+To create a valid Entity, either pass a `World` to the constructor,
+```C++
+divvy::Entity hero(world);
+```
+or pass a `World` to the `reset(...)` method.
+```C++
+divvy::Entity hero;
+hero.reset(world);
+```
+
+Although these two ways are equivalent, the reset method is most useful when creating an array of `Entity`. In which case Entities would be created using the default constructor, which doesn't assign a `World`. So to combat this, you could run the `reset` method on all of the elements in the array to assign a `World`. **Note: there is a corresponding `reset` method for every constructor of `Entity`.**
+
+#### Checking validity of an Entity
+
+The validity of an `Entity` depends of whether or not it is associated with a `World`. You can check the validity of an `Entity` with the `valid` method, which returns either `true` or `false`.
+
+```C++
+hero.valid();
+```
+
+#### Adding Components to an Entity
+
+When Components are added to Entities, the constructor that matches the parameter list will be called. This allows for overloaded constructors to be utilized.
+
+```C++
+hero.add<Nametag>("Mario");
 ```
 
 #### Retrieving Components from an Entity
@@ -159,7 +208,7 @@ world.update(); // OUTPUT: Hello! My name is Luigi.
 
 #### Copying/Moving Entities
 
-Entities have the additional functionality to be copable and movable. However, it is important to note that copying and moving are fundamentially different.
+Entities have the additional functionality of being copable and movable. However, it is important to remember that copying and moving are fundamentially different.
   - **Copying**: calls the `clone` method of each Component, which copies the specified variables
   - **Moving**: moves the reference of the `Entity`, leaving the other `Entity` invalid
 
@@ -173,7 +222,7 @@ divvy::Entity princess = std::move(hero);
 princess.get<Nametag>().setName("Peach");
 
 // Check if the move was successful
-if (hero.valid() == false)
+if (princess.valid() && !hero.valid())
 {
     world.update();
 }
@@ -229,8 +278,7 @@ class Physics : public divvy::Component
 {
     Physics()
     {
-        if (m_entity->has<Transform>() == false || 
-            m_entity->has<Mass>() == false)
+        if (!m_entity->has<Transform>() || !m_entity->has<Mass>())
         {
             std::cout << "Physics requires Transform and Mass to already be present. \n";
             m_entity->remove<Physics>();
@@ -251,22 +299,8 @@ enemy.remove<Nametag>();
 
 This immediately deactives the Component and removes it from the `Entity` that it is assigned to.
 
-## Testing
+## That's all!
 
-Unit tests are ran on the [GoogleTest framework](https://code.google.com/p/googletest/); however, you don't have to download/install GoogleTest in order to run the tests, since it is a git submodule of this repository.
-
-To clone and test this repository with GoogleTest:
-```
-git clone --recursive https://github.com/puradox/divvy
-cd divvy
-mkdir build
-cd build
-cmake ..
-make
-make test
-```
-
-For a more detailed test:
-```
-./test/divvy_test
-```
+If you have any more questions about Divvy and how it works, you could either 
+  - [Email me](mailto:sambalana247@gmail.com)
+  - View the [source code](https://github.com/puradox/divvy/blob/master/include/divvy.hpp) directly (fully documented and not too long) 
