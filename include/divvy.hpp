@@ -229,9 +229,19 @@ public:
      *
      * @return true if valid, false otherwise.
      */
-    inline bool valid()
+    inline bool valid() const
     {
         return (m_world == nullptr ? false : true);
+    }
+
+    /**
+     * Converts Entity to boolean based on whether or not it is valid.
+     *
+     * @returns true if valid, false otherwise.
+     */
+    operator bool() const
+    {
+        return valid();
     }
 
 private:
@@ -267,13 +277,13 @@ std::ostream& operator<<(std::ostream& stream, const Entity& entity)
  * Based on article "Fast polymorphic collections" by Joaquín M López Muñoz.
  * (http://bannalia.blogspot.com/2014/05/fast-polymorphic-collections.html)
  */
-class ComponentPool
+class BaseComponentPool
 {
 public:
     /**
      * Destructor.
      */
-    virtual ~ComponentPool() {}
+    virtual ~BaseComponentPool() {}
 
     /**
      * Add a Component to an Entity
@@ -341,13 +351,13 @@ public:
  * (http://bannalia.blogspot.com/2014/05/fast-polymorphic-collections.html)
  */
 template <class T>
-class ComponentSegment : public ComponentPool
+class ComponentPool : public BaseComponentPool
 {
 public:
     /**
      * Destructor.
      */
-    virtual ~ComponentSegment() {}
+    virtual ~ComponentPool() {}
 
     /**
      * Add a Component to an Entity
@@ -509,12 +519,17 @@ public:
     template <class T, typename = is_valid_component<T>>
     void add()
     {
-        m_registry.insert(std::make_pair(std::type_index(typeid(T)), make_unique<ComponentSegment<T>>()));
+        m_registry.insert(std::make_pair(std::type_index(typeid(T)), make_unique<ComponentPool<T>>()));
 
         #ifdef DIVVY_DEBUG
         std::cout << "-- Registered Component Type: " << typeid(T).name() << std::endl;
         #endif
     }
+
+    /**
+     * Run a lambda on a collection of Components
+     */
+    //template <class Derived&&
 
     /**
      * Check whether a Component type is registered in the World.
@@ -823,8 +838,8 @@ private:
      * These are the essential typedefs that describe what a registry and pool are and
      * how to access their elements. Take note of the types used.
      */
-    typedef std::unique_ptr<ComponentPool>  Pool;
-    typedef std::map<std::type_index, Pool> ComponentRegistry;
+    typedef std::unique_ptr<BaseComponentPool> Pool;
+    typedef std::map<std::type_index, Pool>    ComponentRegistry;
 
     /// The local registry of Components types and the Entites that use them.
     ComponentRegistry m_registry;
