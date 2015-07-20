@@ -104,27 +104,30 @@ Divvy is based on the usage of three different classes types, each will be furth
 
 For a quick reference, here is the full list of public methods available by class.
 
-| `Entity` Method                             | Description                                          |
-|---------------------------------------------|------------------------------------------------------|
-| `Entity()`                                  | Creates an invalid Entity.                           |
-| `Entity(World& world)`                      | Creates an Entity in the specified World.            |
-| `Entity(Entity&& other)`                    | Moves an Entity into this Entity.                    |
-| `Entity(const Entity& other)`               | Creates a clone of an Entity in the same World.      |
-| `Entity(const Entity& other, World& world)` | Creates a clone of an Entity in the specified World. |
-| `Component& Entity.add<Component>(...)`     | Assign a Component to this Entity.                   |
-| `Component& Entity.get<Component>()`        | Retrieve a Component.                                |
-| `bool Entity.has<Component>()`              | Check if a Component is assigned to this Entity.     |
-| `void Entity.remove<Component>()`           | Remove a Component from this Entity.                 |
-| `void Entity.reset()`                       | *Corresponding reset method for every constructor)*  |
-| `Entity.valid()`                            | Check whether an Entity is valid.                    |
+| `Entity` Constructor                        | Description                                         |
+|---------------------------------------------|-----------------------------------------------------|
+| `Entity()`                                  | Creates an invalid Entity                           |
+| `Entity(World& world)`                      | Creates an Entity in the specified World            |
+| `Entity(Entity&& other)`                    | Moves an Entity into this Entity                    |
+| `Entity(const Entity& other)`               | Creates a clone of an Entity in the same World      |
+| `Entity(const Entity& other, World& world)` | Creates a clone of an Entity in the specified World |
 
-| `World` Method                   | Description                                                 |
-|----------------------------------|-------------------------------------------------------------|
-| `void World.add<Component>()`    | Register a Component type to this World.                    |
-| `bool World.has<Component>()`    | Check whether a Component type is registered in this World. |
-| `void World.remove<Component>()` | Unregister a Component type in this World.                  |
-| `void World.clear()`             | Clear the World of all Entities and Components.             |
-| `void World.update()`            | Update all the Components in this World.                    |
+| `Entity` Method                         | Description                                        |
+|-----------------------------------------|----------------------------------------------------|
+| `Component& Entity.add<Component>(...)` | Assign a Component to this Entity                  |
+| `Component& Entity.get<Component>()`    | Retrieve a Component                               |
+| `bool Entity.has<Component>()`          | Check if a Component is assigned to this Entity    |
+| `void Entity.remove<Component>()`       | Remove a Component from this Entity                |
+| `void Entity.reset()`                   | *Corresponding reset method for every constructor* |
+| `Entity.valid()`                        | Check whether an Entity is valid                   |
+
+| `World` Method                   | Description                                                |
+|----------------------------------|------------------------------------------------------------|
+| `void World.add<Component>()`    | Register a Component type to this World                    |
+| `bool World.has<Component>()`    | Check whether a Component type is registered in this World |
+| `void World.remove<Component>()` | Unregister a Component type in this World                  |
+| `void World.clear()`             | Clear the World of all Entities and Components             |
+| `void World.update()`            | Update all the Components in this World                    |
 
 ## Component
 
