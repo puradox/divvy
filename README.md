@@ -17,14 +17,6 @@ Divvy was made in mind for people that desire a simple, lightweight way to utili
 
 Divvy was originally geared towards game development; however, it can be used for other areas of development that could benefit from interchangable programming bits.
 
-## Dependencies
-
-Divvy is dependant on the C++11 STL, so make sure to use a C++11 compliant compiler when using Divvy. Don't forget to compile your C++ program with the `-std=c++11` or equivalent flag!
-
-## Integrating Divvy into your project
-
-To use Divvy, simply copy over the single header file `include/divvy.hpp` of this repository into your project.
-
 ## Quick Example
 
 ```C++
@@ -75,6 +67,14 @@ int main()
 #### More Examples
 
 To view more examples, visit the `examples` folder in this repository.
+
+## Dependencies
+
+Divvy is dependant on the C++11 STL, so make sure to use a C++11 compliant compiler when using Divvy. Don't forget to compile your C++ program with the `-std=c++11` or equivalent flag!
+
+## Integrating Divvy into your project
+
+To use Divvy, simply copy over the single header file `include/divvy.hpp` of this repository into your project.
 
 ## Testing
 
@@ -190,11 +190,11 @@ hero.valid();
 
 #### Adding Components to an Entity
 
-When Components are added to Entities, the constructor that matches the parameter list will be called. This allows for overloaded constructors to be utilized.
-
 ```C++
 hero.add<Nametag>("Mario");
 ```
+
+When Components are added to Entities, the constructor that matches the parameter list of `add` will be called. This allows for overloaded constructors to be utilized.
 
 #### Retrieving Components from an Entity
 
