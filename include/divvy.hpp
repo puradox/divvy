@@ -1,5 +1,5 @@
 /*
- * Divvy v0.5 - a modern, simple component entity framework.
+ * Divvy v0.6 - a modern, simple component framework.
  *
  * Licensed under The MIT License (MIT)
  *
@@ -92,6 +92,20 @@ using is_valid_component = typename std::enable_if<std::is_base_of<Component,T>:
                                                    std::is_default_constructible<T>::value
                                                    >::type;
 
+/**
+ * Shorter way to convert Component types when implementing the virtual clone method.
+ *
+ * @param other     The Component to convert.
+ *
+ * @returns         Constant reference to the derived Component.
+ */
+template <class T>
+inline const T& cast(const Component& other)
+{
+    return static_cast<const T&>(other);
+}
+
+
 // =====================================[ Entity ]=======================================
 
 class World; // Forward declaration
@@ -100,8 +114,9 @@ class World; // Forward declaration
 typedef size_t EntityID;
 
 /**
- * Entity is the interface that allows addition, removal, and retrieval of Components.
- * Along with these functionality, Entity is also copyable and movable.
+ * Entity is an indentifier that unites a collection of Components of a specified World.
+ * It also acts as the interface that allows addition, removal, and retrieval of Components.
+ * Along with these functionalities, Entity is also copyable and movable.
  */
 class Entity
 {
