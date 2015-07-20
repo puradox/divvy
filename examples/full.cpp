@@ -59,7 +59,7 @@ int main()
     princess.get<Nametag>().setName("Peach");
 
     // Check if the move was successful
-    if (hero.valid() == false)
+    if (princess.valid() && !hero.valid())
     {
         world.update();
 
@@ -69,14 +69,14 @@ int main()
         */
     }
 
-    if (enemy.has<Nametag>() == true)
+    if (enemy.has<Nametag>())
     {
         std::cout << "Enemy has a name! \n";
     }
 
     enemy.remove<Nametag>();
 
-    if (enemy.has<Nametag>() == false)
+    if (!enemy.has<Nametag>())
     {
         std::cout << "Enemy no longer has a name! \n";
     }
