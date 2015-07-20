@@ -1,18 +1,14 @@
-# Divvy - A lightweight Component framework [![Build Status](https://travis-ci.org/puradox/divvy.svg?branch=master)](https://travis-ci.org/puradox/divvy)
-##### Current version: v0.5
+# Divvy - A lightweight Component Entity framework [![Build Status](https://travis-ci.org/puradox/divvy.svg?branch=master)](https://travis-ci.org/puradox/divvy)
+##### Current version: v0.7
 
-Divvy is a lightweight component entity framework made in C++11. Licensed 
-under the MIT license and designed to be extremely easy to integrate, it's 
-purpose is to ease development where monolithic class structures would 
-normally be the answer. See all of the details, benefits, and drawbacks of
-the *Component pattern* [here](http://gameprogrammingpatterns.com/component.html).
+Divvy is a lightweight component entity framework made in C++11. Licensed under the MIT license and designed to be extremely easy to integrate, it's purpose is to ease development where big, monolithic class structures would normally be the answer. See all of the details, benefits, and drawbacks of the *Component pattern* [here](http://gameprogrammingpatterns.com/component.html).
 
 ## Features
   - Simple, no macros or unneccessary clutter
-  - Extendable, Components are easy to make
-  - Lightweight, no need to link libraries
+  - Extendable, Components can be created for any purpose and are easy to make
+  - Lightweight, only three fundimental parts (`Component`, `Entity`, and `World`)
   - Easy to integrate, all of Divvy is implemented in a single header file (no linking!)
-  - Fast, Contiguous memory storage of Components allows for faster iterations
+  - Fast, contiguous memory storage of Components allows for faster iterations
   - Type-safe, [`std::enable_if`](http://en.cppreference.com/w/cpp/types/enable_if) ensures that Components can't be mixed up
 
 ## Purpose
@@ -27,7 +23,7 @@ Divvy is dependant on the C++11 STL, so make sure to use a C++11 compliant compi
 
 ## Integrating Divvy into your project
 
-To use Divvy, simply copy over the single header file `include/divvy.hpp` in this repository into your own project.
+To use Divvy, simply copy over the single header file `include/divvy.hpp` of this repository into your project.
 
 ## Quick Example
 
@@ -51,8 +47,10 @@ public:
 
     virtual void clone(const divvy::Component& other)
     {
-        m_name = static_cast<const Nametag&>(other).m_name;
+        m_name = divvy::cast<Nametag>(other).m_name;
     }
+    
+    void setName(const std::string& name) { m_name = name; }
 
 private:
     std::string m_name;
@@ -67,90 +65,54 @@ int main()
     hero.add<Nametag>("Mario");
 
     world.update(); // OUTPUT: Hello! My name is Mario.
+    
+    hero.get<Nametag>().setName("Luigi");
+    
+    world.update(); // OUTPUT: Hello! My name is Luigi.
 }
 ```
 
-## Getting Started - Step by Step
+#### More Examples
+
+To view more examples, visit the `examples` folder in this repository.
+
+## Documentation
 
 Divvy is based on the usage of three different classes types, each will be further explained in their own section.
   - `Component`: The base class that all Components have to derive from.
   - `Entity`: Identifier that unifies a collection of Components. Also acts as a helper class to access Components.
   - `World`: Container for all Components and Entity associations.
 
-#### Creating Components
+#### Components
 
-Components are essential to decoupling code and forming a modular codebase. A `Component` will have two neccessary virtual methods that you have implement in your own Components, `update` and `clone`.
-  - `update`: provides functionality to your `Component`
-  - `clone`: provides copy semantics your `Component`
-
-Components also hold a pointer `m_entity` to the Entity that is assigned to them. Later on, we will see how this is useful and where you could possibily use it.
-
-To start, we will need to create our own component. To create a valid component, we have to adhere to the following rules:
+Components are essential to decoupling code and forming a modular codebase. It is meant to be inherited and changed into your own component type. To start, we will need to create our own component. To create a valid component, we have to adhere to the following rules:
   1. Publicly inherit from `divvy::Component`
-  2. Implement a default constructor (takes no arguments)
+  2. Implement a default constructor that takes no arguments
 
-Let's create a component that holds a string and prints it upon update. It will resemble the one in the Quick Example, but with some added features and comments to demonstrate the possibilities of a `Component`.
-```C++
-#include <iostream>
-#include <string>
+`Component` contains two pure virtual methods that you have to implement when creating your own components, `update` and `clone`.
+  - `update`: provides functionality to your `Component`
+  - `clone`: provides copy semantics to your `Component`
 
-#include "divvy.hpp" // or where ever it is located
+Note that `divvy::cast<T>(other)` is the exact same as `static_cast<const T&>(other)`. The `cast` function was added in v0.6 to help readability when implementing the virtual clone method of `Component`, there is no extra functionality behind it.
 
-class Nametag : public divvy::Component
-{
-public:
-    // Default constructor
-    Nametag() {}
-    
-    // Divvy can take advantage of overloaded constructors, so let's add one!
-    Nametag(const std::string& name) : m_name(name) {}
-    
-    // The update method provides functionality to Components.
-    virtual void update()
-    {
-        std::cout << "Hello! My name is " << m_name << ".\n";
-    }
-    
-    // The clone method allows copy functionality when copying Components between Entities.
-    virtual void clone(const divvy::Component& other)
-    {
-        // Copy over name
-        m_name = static_cast<const Nametag&>(other).m_name;
-    }
-    
-    // Setter method with self return
-    Nametag& setName(const std::string& name)
-    {
-        m_name = name;
-        return *this;
-    }
-    
-    // Getter method
-    const std::string& getName() { return m_name; }
-    
-private:
-    std::string m_name;
-};
-```
+Additionally, Components hold a pointer `m_entity` to the Entity that is assigned to them. Later on, we will see how this is useful and where you could possibily use it. (See [Checking For Components](#checking-for-components))
 
-#### Adding Components to a World
+#### World
 
 Once we have a valid component, we have to add the component type to a `World`.
 
-The `World` contains all of the possible component types that you can add to an `Entity`. Thus, it is important that we add all the component types that we want into the `World` before we assign any components to an `Entity`.
+A `World` contains all of the possible component types that you can add to an `Entity`. Thus, it is important that we add all the component types that we want into the `World` before we assign any components to an `Entity`.
 
 ```C++
-divvy::World world;    // Create a World (collection of Components and Entity associations)
-world.add<Nametag>();  // Add the component type to the World
+divvy::World world;
+world.add<Nametag>();
 ```
 
-Note that different Worlds can have different component types, this is mainly for customizing which Components you want to include in a World. **When copying entities between two different worlds, only the component types that exist in both worlds will be copied over.** More on this in the [*Copying/Moving Entities*](#copying-moving-entities) section.
-
-#### Creating an Entity
+#### Entity
 
 `Entity` is the interface to add, remove, and retrieve components. To act as this interface, Entities have to be assigned to a `World`, since the `World` is what holds all of the Components. Keep in mind that if there is no `World` assigned, the `Entity` is considered to be invalid and won't be of any use. Trying to use an invalid `Entity` will result in an exception being thrown.
 
-Now that we have a component type in a `World`, we can start using it by creating an `Entity` in the `World`. There are two ways that can accomplish this:
+There are two ways that can accomplish creating a valid Entity:
 
 Either by passing a `World` to the constructor,
 ```C++
@@ -162,6 +124,11 @@ divvy::Entity hero;
 hero.reset(world);
 ```
 
+You can check the validity of an Entity with the `valid` method, which returns either `true` or `false`
+```C++
+hero.valid();
+```
+
 Although these two ways are equivalent, the reset method is most useful when creating an array of `Entity`. In which case Entities would be created using the default constructor which doesn't assign a `World`. **Note that there is a corresponding `reset` method for every constructor of `Entity`.**
 
 #### Adding Components to an Entity
@@ -169,7 +136,7 @@ Although these two ways are equivalent, the reset method is most useful when cre
 When Components are added to Entities, the constructor that matches the parameter list will be called. This allows for overloaded constructors to be utilized.
 
 ```C++
-hero.add<Nametag>("Mario"); // Calls the overloaded constructor of Nametag
+hero.add<Nametag>("Mario");
 ```
 
 #### Updating the World
@@ -177,7 +144,7 @@ hero.add<Nametag>("Mario"); // Calls the overloaded constructor of Nametag
 Whenever a `World` is updated, all of the Components that are active inside the `World` are updated as well.
 
 ```C++
-world.update(); // OUTPUT: Hello! My name is Mario.
+world.update();
 ```
 
 #### Retrieving Components from an Entity
@@ -185,7 +152,7 @@ world.update(); // OUTPUT: Hello! My name is Mario.
 The `Entity` interface also makes retrieving components as easy as adding them.
 
 ```C++
-player.get<Nametag>().setName("Luigi");
+hero.get<Nametag>().setName("Luigi");
 
 world.update(); // OUTPUT: Hello! My name is Luigi.
 ```
@@ -193,40 +160,69 @@ world.update(); // OUTPUT: Hello! My name is Luigi.
 #### Copying/Moving Entities
 
 Entities have the additional functionality to be copable and movable. However, it is important to note that copying and moving are fundamentially different.
-  - **Copying**: calls the `clone` method, which copies the specified variables
+  - **Copying**: calls the `clone` method of each Component, which copies the specified variables
   - **Moving**: moves the reference of the `Entity`, leaving the other `Entity` invalid
 
 ```C++
 // Copying
-divvy::Entity enemy(player);
+divvy::Entity enemy(hero);
 enemy.get<Nametag>().setName("Bowser");
 
 // Moving
-divvy::Entity player2 = std::move(player);
-player2.get<Nametag>().setName("Luigi");
+divvy::Entity princess = std::move(hero);
+princess.get<Nametag>().setName("Peach");
 
 // Check if the move was successful
-if (player.valid() == false)
+if (hero.valid() == false)
 {
     world.update();
 }
 
 /* OUTPUT:
-Hello! My name is Luigi.
+Hello! My name is Peach.
 Hello! My name is Bowser.
 */
 ```
 
+#### Copying Entities Between Worlds
+
+If a situation appears in which you would want to copy Entities between two different worlds, there are two different ways to approach it.
+
+You could use the overloaded constructor,
+```C++
+divvy::Entity otherHero(hero, otherWorld);
+```
+or corresponding `reset` method.
+```C++
+otherHero.reset(hero, otherWorld);
+```
+
+Here is a full example using the `Nametag` component in the Quick Example.
+```C++
+divvy::World earth;
+world.add<Nametag>();
+divvy::Entity human(world);
+human.add<Nametag>("astronaut");
+
+divvy::World mars;
+mars.add<Nametag>();
+divvy::Entity martian(human, mars);
+
+mars.update(); // OUTPUT: Hello! My name is astronaut.
+```
+
+**When copying entities between two different worlds, only the component types that exist in both worlds will be copied over.**
+
 #### Checking for Components
 
 ```C++
-if (enemy.has<Nametag>() == true)
+if (enemy.has<Nametag>())
 {
     std::cout << "Enemy has a name! \n";
 }
 ```
 
-It can serve useful to check whether an `Entity` has a specific `Component`. The `has` method allows for this check to be possible. This is especially useful to check whether an `Entity` has the required Components before adding another specialized `Component`.
+It can serve useful to check whether an `Entity` has a specific `Component`. The `has` method allows for such a check to be possible. This is especially useful to check whether an `Entity` has the required Components before adding another `Component`.
 
 ```C++
 class Physics : public divvy::Component
@@ -245,94 +241,32 @@ class Physics : public divvy::Component
 }
 ```
 
-**`m_entity` is a protected pointer built into `Component` that points to the assigned `Entity`.**
+Again, to avoid confusion, `m_entity` is a protected pointer built into `Component` that points to it's assigned `Entity`.
 
 #### Removing Components
 
 ```C++
 enemy.remove<Nametag>();
-
-world.update(); // OUTPUT: Hello! My name is Luigi.
 ```
 
 This immediately deactives the Component and removes it from the `Entity` that it is assigned to.
 
-#### Putting It All Together
+## Testing
 
-```C++
-#include <iostream>
-#include <string>
+Unit tests are ran on the [GoogleTest framework](https://code.google.com/p/googletest/); however, you don't have to download/install GoogleTest in order to run the tests, since it is a git submodule of this repository.
 
-#include "divvy.hpp" // or where ever it is located
+To clone and test this repository with GoogleTest:
+```
+git clone --recursive https://github.com/puradox/divvy
+cd divvy
+mkdir build
+cd build
+cmake ..
+make
+make test
+```
 
-class Nametag : public divvy::Component
-{
-public:
-    // Default constructor
-    Nametag() {}
-    
-    // Divvy can take advantage of overloaded constructors, so let's add one!
-    Nametag(const std::string& name) : m_name(name) {}
-    
-    // The update method provides functionality to Components.
-    virtual void update()
-    {
-        std::cout << "Hello! My name is " << m_name << ".\n";
-    }
-    
-    // The clone method allows copy functionality when copying Components between Entities.
-    virtual void clone(const divvy::Component& other)
-    {
-        // Copy over name
-        m_name = static_cast<const Nametag&>(other).m_name;
-    }
-    
-    // Setter method with self return
-    Nametag& setName(const std::string& name)
-    {
-        m_name = name;
-        return *this;
-    }
-    
-    // Getter method
-    const std::string& getName() { return m_name; }
-    
-private:
-    std::string m_name;
-};
-
-int main()
-{
-    divvy::Entity hero(world);
-    hero.add<Nametag>("Mario"); // Calls the overloaded constructor of Nametag
-    
-    world.update();
-    
-    player.get<Nametag>().setName("Luigi");
-
-    world.update();
-    
-    // Copying
-    divvy::Entity enemy(player);
-    enemy.get<Nametag>().setName("Bowser");
-    
-    // Moving
-    divvy::Entity player2 = std::move(player);
-    player2.get<Nametag>().setName("Luigi");
-    
-    // Check if the move was successful
-    if (player.valid() == false)
-    {
-        world.update();
-    }
-    
-    if (enemy.has<Nametag>() == true)
-    {
-        std::cout << "Enemy has a name! \n";
-    }
-    
-    enemy.remove<Nametag>();
-
-    world.update();
-}
+For a more detailed test:
+```
+./test/divvy_test
 ```
