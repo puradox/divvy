@@ -31,6 +31,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <string>
 #include <typeindex>
@@ -269,10 +270,11 @@ std::ostream& operator<<(std::ostream& stream, const Entity& entity)
     return stream;
 }
 
-// =================================[ ComponentPool ]====================================
+// =================================[ BaseComponentPool ]================================
 
 /**
  * Base polymorphic Component container.
+ * Used for storing different types of ComponentPools in a single container.
  *
  * Based on article "Fast polymorphic collections" by Joaquín M López Muñoz.
  * (http://bannalia.blogspot.com/2014/05/fast-polymorphic-collections.html)
@@ -280,11 +282,6 @@ std::ostream& operator<<(std::ostream& stream, const Entity& entity)
 class BaseComponentPool
 {
 public:
-    /**
-     * Destructor.
-     */
-    virtual ~BaseComponentPool() {}
-
     /**
      * Add a Component to an Entity
      *
@@ -311,6 +308,13 @@ public:
      * @return          Reference to the Component at the index location.
      */
     virtual const Component& at(size_t index) const = 0;
+
+    /**
+     * Returns the reserved capacity of the pool.
+     *
+     * @return          Reserved capacity
+     */
+    virtual size_t capacity() const = 0;
 
     /**
      * Check if an Entity has a Component
@@ -341,7 +345,7 @@ public:
     virtual void update() = 0;
 };
 
-// ================================[ ComponentSegment ]==================================
+// ================================[ ComponentPool ]=====================================
 
 /**
  * Derived polymorphic Component container.
@@ -354,21 +358,9 @@ template <class T>
 class ComponentPool : public BaseComponentPool
 {
 public:
-    /**
-     * Destructor.
-     */
-    virtual ~ComponentPool() {}
-
-    /**
-     * Add a Component to an Entity
-     *
-     * @param index     The EntityID of the Entity.
-     *
-     * @return          Reference to the newly added Component.
-     */
     virtual Component& add(size_t index)
     {
-        if (index >= m_segment.size())
+        if (index >= m_pool.size())
             throw std::runtime_error("ComponentSegment index out of bounds");
 
         m_active.at(index) = true;
@@ -376,37 +368,21 @@ public:
         return at(index);
     }
 
-    /**
-     * Access a Component at the specified index.
-     *
-     * @param index     The EntityID of the Entity.
-     *
-     * @return          Reference to the Component at the index location.
-     */
     virtual Component& at(size_t index)
     {
-        return static_cast<Component&>(m_segment.at(index));
+        return static_cast<Component&>(m_pool.at(index));
     }
 
-    /**
-     * Access a constant Component at the specified index.
-     *
-     * @param index     The EntityID of the Entity.
-     *
-     * @return          Reference to the Component at the index location.
-     */
     virtual const Component& at(size_t index) const
     {
-        return static_cast<const Component&>(m_segment.at(index));
+        return static_cast<const Component&>(m_pool.at(index));
     }
 
-    /**
-     * Check if an Entity has a Component
-     *
-     * @param index     The EntityID of the Entity.
-     *
-     * @return          True if the Entity has the Component, false otherwise.
-     */
+    virtual size_t capacity() const
+    {
+        return m_pool.size();
+    }
+
     virtual bool has(size_t index)
     {
         try
@@ -419,11 +395,6 @@ public:
         }
     }
 
-    /**
-     * Remove a Component from an Entity
-     *
-     * @param index     The EntityID of the Entity.
-     */
     virtual void remove(size_t index)
     {
         try
@@ -436,16 +407,11 @@ public:
         }
     }
 
-    /**
-     * Resize the pool to allow for more Components
-     *
-     * @param size      The desired size of elements in the pool.
-     */
     virtual void resize(size_t size)
     {
         try
         {
-            m_segment.resize(size);
+            m_pool.resize(size);
             m_active.resize(size, false);
         }
         catch (std::bad_alloc e)
@@ -454,21 +420,18 @@ public:
         }
     }
 
-    /**
-     * Update all active Components in the pool.
-     */
     virtual void update()
     {
-        for (unsigned int i = 0; i < m_segment.size(); i++)
+        for (unsigned int i = 0; i < m_pool.size(); i++)
         {
             if (m_active.at(i))
-                m_segment.at(i).update();
+                m_pool.at(i).update();
         }
     }
 
 private:
     /// Collection of the specified derived Component
-    std::vector<T> m_segment;
+    std::vector<T> m_pool;
 
     /// Record of the active Components
     std::vector<bool> m_active;
