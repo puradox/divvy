@@ -482,7 +482,8 @@ public:
     template <class T, typename = is_valid_component<T>>
     void add()
     {
-        m_registry.insert(std::make_pair(std::type_index(typeid(T)), make_unique<ComponentPool<T>>()));
+		m_registry.insert(std::make_pair(std::type_index(typeid(T)), make_unique<ComponentPool<T>>()));
+		m_registry.at(typeid(T))->resize(m_capacity);
 
         #ifdef DIVVY_DEBUG
         std::cout << "-- Registered Component Type: " << typeid(T).name() << std::endl;
@@ -533,8 +534,7 @@ public:
         }
 
         // Unregister all Components
-        for (auto it = m_registry.begin(); it != m_registry.end(); it++)
-            m_registry.erase(it);
+		m_registry.clear();
     }
 
     /**
@@ -593,7 +593,7 @@ private:
      */
     EntityID addEntity(Entity& entity)
     {
-        int index;
+        size_t index;
 
         if (m_open.size() != 0)             // Free m_capacity available - reuse slots
         {
@@ -793,7 +793,14 @@ private:
             std::cerr << "-- WARNING: Component " << type.name() << " already absent on " << entity << std::endl;
         #endif
 
-        m_registry.at(type)->remove(entity.m_id);
+		try 
+		{
+			m_registry.at(type)->remove(entity.m_id);
+		}
+		catch (std::out_of_range e) 
+		{
+			throw std::runtime_error("Component type not added to World");
+		}
     }
 
 private:

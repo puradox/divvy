@@ -7,5 +7,8 @@
 
 int main(int argc, char** argv)
 {
-	return Catch::Session().run(argc, argv);
+	int result = Catch::Session().run(argc, argv);
+
+	std::cin.ignore();
+	return result;
 }

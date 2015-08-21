@@ -178,11 +178,11 @@ TEST_CASE("Entity can add Components", "[entity][component]")
 		REQUIRE_THROWS_AS(entity.add<Transform>(), std::runtime_error);
 	}
 
+	world.add<Transform>();
+	entity.add<Transform>();
+
 	SECTION("adding a Component")
 	{
-		world.add<Transform>();
-
-		entity.add<Transform>();
 		REQUIRE(entity.has<Transform>());
 	}
 }
@@ -193,20 +193,21 @@ TEST_CASE("Entity can get Components", "[entity][component]")
 	World world;
 	Entity entity;
 
+	
 	SECTION("getting a Component without a World")
 	{
 		REQUIRE_THROWS_AS(entity.get<Transform>(), std::runtime_error);
 	}
 
 	entity.reset(world);
-
+	
 	SECTION("getting a Component that isn't added to a World")
 	{
 		REQUIRE_THROWS_AS(entity.get<Transform>(), std::runtime_error);
 	}
 
 	world.add<Transform>();
-
+	
 	SECTION("getting a Component not added to the Entity")
 	{
 		REQUIRE_FALSE(entity.has<Transform>());
@@ -248,7 +249,6 @@ TEST_CASE("Entity can remove Components", "[entity][component]")
 		REQUIRE_FALSE(entity.has<Transform>());
 		entity.remove<Transform>();
 		REQUIRE_FALSE(entity.has<Transform>());
-		REQUIRE_THROWS_AS(entity.remove<Transform>(), std::runtime_error);
 	}
 
 	SECTION("removing a Component")
@@ -351,18 +351,20 @@ TEST_CASE("Entity can reset", "[entity][world]")
 	World world;
 	Entity entity;
 
+	entity.reset();
+
 	SECTION("resetting from null")
 	{
-		entity.reset();
 		REQUIRE(entity.valid() == false);
 	}
 
+	entity.reset(world);
+
 	SECTION("resetting World")
 	{
-		entity.reset(world);
 		REQUIRE(entity.valid() == true);
 	}
-
+	
 	world.add<Transform>();
 	world.add<Nametag>();
 
@@ -402,7 +404,7 @@ TEST_CASE("Entity can reset", "[entity][world]")
 TEST_CASE("World can update Entities", "[world][entity]")
 {
 	World world;
-	Entity entity;
+	Entity entity(world);
 
 	world.add<Transform>();
 	entity.add<Transform>(1, 2);
