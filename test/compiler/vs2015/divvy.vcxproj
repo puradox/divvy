@@ -24,6 +24,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\divvy.hpp" />
+    <ClInclude Include="..\..\..\include\divvy\Component.hpp" />
+    <ClInclude Include="..\..\..\include\divvy\ComponentPool.hpp" />
+    <ClInclude Include="..\..\..\include\divvy\Entity.hpp" />
+    <ClInclude Include="..\..\..\include\divvy\World.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6F3C00DF-BCDA-4E9A-99A6-1B6F837D616D}</ProjectGuid>

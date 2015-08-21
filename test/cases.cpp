@@ -3,7 +3,7 @@
 
 #include "catch.hpp"
 
-//#define DIVVY_DEBUG
+#define DIVVY_DEBUG
 #include "divvy.hpp"
 using namespace divvy;
 
